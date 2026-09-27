@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "enlint-local",
+  "description": "Local marketplace holding the enlint prose-style plugin",
+  "owner": {
+    "name": "neytopia"
+  },
+  "plugins": [
+    {
+      "name": "enlint",
+      "description": "Writes and rewrites English prose to a house style using the english-lint rule set. Loads a style card at session start, lints the final answer of every turn for free, and hands rewrites to a cheap subagent.",
+      "author": {
+        "name": "neytopia"
+      },
+      "category": "writing",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "description": "Loads the house style card at session start, records the prose documents Claude writes, and at the end of each turn lints the final answer and those documents, handing anything flagged back to Claude to rewrite through the enlint-fix skill.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-card.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/record-write.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-lint.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Checking prose style..."
+          }
+        ]
+      }
+    ]
+  }
+}

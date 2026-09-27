@@ -1,0 +1,29 @@
+{
+  "name": "enlint-skill",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "enlint": "./bin/enlint.mjs"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/bundle.mjs",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --import tsx/esm test/**/*.test.ts",
+    "enlint": "node ./bin/enlint.mjs",
+    "install-claude": "node ./scripts/install.mjs claude",
+    "install-codex": "node ./scripts/install.mjs codex"
+  },
+  "dependencies": {
+    "english-lint": "file:../english-lint",
+    "nlp": "file:../nlp"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "esbuild": "^0.25.12",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3"
+  }
+}

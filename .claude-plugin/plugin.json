@@ -1,0 +1,9 @@
+{
+  "name": "enlint",
+  "version": "0.1.0",
+  "description": "Writes and rewrites English prose to a house style, using the english-lint rule set. Proactive guidance plus a zero-token linter that checks the final answer and hands the rewrite to a cheap subagent.",
+  "author": {
+    "name": "neytopia"
+  },
+  "keywords": ["writing", "style", "linter", "prose", "english-lint"]
+}
