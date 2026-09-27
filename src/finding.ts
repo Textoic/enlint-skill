@@ -1,4 +1,4 @@
-import type { Suggestion } from "english-lint/types";
+import type { Suggestion } from "enlint/types";
 
 export type Finding = {
   id: string;

@@ -1,6 +1,6 @@
 {
   "name": "enlint-skill",
-  "version": "0.5.0",
+  "version": "0.6.1",
   "license": "UNLICENSED",
   "private": true,
   "type": "module",
@@ -17,8 +17,8 @@
     "install-codex": "node ./scripts/install.mjs codex"
   },
   "dependencies": {
-    "english-lint": "file:../english-lint",
-    "nlp": "file:../nlp"
+    "enlint": "file:../enlint",
+    "artisan": "file:../artisan"
   },
   "devDependencies": {
     "@types/node": "22.18.1",

@@ -5,7 +5,7 @@ import {
   allProblems,
   summary,
   wordsIn
-} from "./chunk-RU3IP2X6.mjs";
+} from "./chunk-K7HZUS6O.mjs";
 import {
   createdDuring,
   leaveNote,
@@ -47,6 +47,11 @@ var flaggedAnswer = (answer, limits) => {
   const findings = allProblems(answer);
   return findings.length < limits.issues ? "" : summary(answer, findings);
 };
+var HARNESSES = ["claude", "codex"];
+var harnessOf = (payload) => {
+  const chosen = HARNESSES.find((harness) => harness === process.env.ENLINT_REWRITER);
+  return chosen ?? (typeof payload.turn_id === "string" ? "codex" : "claude");
+};
 var noteFor = (found) => `enlint: your previous answer had ${found}. Write this answer in the house style; do not mention this note.`;
 var workerScript = () => fileURLToPath(new URL("../hooks/rewrite-worker.mjs", import.meta.url));
 var launchWorker = async (job) => {
@@ -79,7 +84,7 @@ var atStop = async (payload, limits, launch = launchWorker) => {
   const items = await documentItems(session, limits);
   const found = flaggedAnswer(await answerOf(payload), limits);
   await Promise.all([
-    items.length === 0 || limits.notifyOnly ? null : launch({ items }),
+    items.length === 0 || limits.notifyOnly ? null : launch({ items, harness: harnessOf(payload) }),
     found === "" || limits.notifyOnly ? null : leaveNote(session, noteFor(found))
   ]);
   const quiet = limits.notifyOnly === false || found === "" && items.length === 0;
@@ -87,5 +92,6 @@ var atStop = async (payload, limits, launch = launchWorker) => {
 };
 export {
   atStop,
+  harnessOf,
   launchWorker
 };

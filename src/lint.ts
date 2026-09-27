@@ -1,5 +1,5 @@
-import lint from "english-lint";
-import type { Config } from "english-lint/types";
+import lint from "enlint";
+import type { Config } from "enlint/types";
 import { editorial } from "./config.js";
 import { sentences } from "./document.js";
 import { structureProblems } from "./structure.js";

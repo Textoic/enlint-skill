@@ -1,6 +1,6 @@
 import { blocks } from "./markdown.js";
 import parse from "./nlp.js";
-import type { ParsedToken } from "english-lint/types";
+import type { ParsedToken } from "enlint/types";
 
 export type Chunk = { at: number; text: string };
 

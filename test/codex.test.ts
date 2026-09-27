@@ -66,5 +66,11 @@ test("sends a document written through the shell to the background", async () =>
   await atStop({ session_id: session, cwd }, limits, async (job) => {
     launched.push(job);
   });
-  assert.deepEqual(launched, [{ items: [{ kind: "file", path: join(cwd, "notes.md"), source: BAD }] }]);
+  assert.deepEqual(launched, [{ items: [{ kind: "file", path: join(cwd, "notes.md"), source: BAD }], harness: "claude" }]);
+});
+
+test("rewrites a Codex turn with Codex and a Claude turn with Claude", async () => {
+  const { harnessOf } = await import("../src/stop.js");
+  assert.equal(harnessOf({ turn_id: "t1" }), "codex");
+  assert.equal(harnessOf({ session_id: "s" }), "claude");
 });

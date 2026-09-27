@@ -8,11 +8,11 @@ import { mechanically } from "./mechanical.js";
 import { workRoot } from "./pending.js";
 import { verdictOf, type Verdict } from "./verify.js";
 import { rewrapLike } from "./wrap.js";
-import type { Rewriter } from "./rewriter.js";
+import type { Harness, Rewriter } from "./rewriter.js";
 
 export type Item = { kind: "file" | "passage"; path: string; source: string };
 
-export type Job = { items: Item[] };
+export type Job = { items: Item[]; harness?: Harness };
 
 type Outcome = { applied: boolean; why: string; verdict?: Verdict; cost?: number };
 
@@ -85,7 +85,7 @@ const judged = async (item: Item, text: string, cost: number): Promise<Outcome> 
   return { applied: true, why: "applied", verdict, cost };
 };
 
-const logLine = (item: Item, outcome: Outcome) => ({
+const logLine = (item: Item, outcome: Outcome, via: Harness) => ({
   at: new Date().toISOString(),
   path: item.path,
   kind: item.kind,
@@ -95,13 +95,14 @@ const logLine = (item: Item, outcome: Outcome) => ({
   survived: outcome.verdict?.survived ?? 0,
   introduced: outcome.verdict?.introduced ?? 0,
   cost: outcome.cost ?? 0,
+  via,
 });
 
 export const historyPath = () => join(workRoot(), "rewrites.jsonl");
 
-const logged = async (item: Item, outcome: Outcome) => {
+const logged = async (item: Item, outcome: Outcome, via: Harness) => {
   await mkdir(workRoot(), { recursive: true });
-  await appendFile(historyPath(), `${JSON.stringify(logLine(item, outcome))}\n`, "utf8");
+  await appendFile(historyPath(), `${JSON.stringify(logLine(item, outcome, via))}\n`, "utf8");
 };
 
 const failed = (error: unknown): Outcome => ({
@@ -118,12 +119,12 @@ const worthRetrying = (outcome: Outcome) => !outcome.applied && outcome.verdict 
 
 const withCost = (outcome: Outcome, spent: number): Outcome => ({ ...outcome, cost: (outcome.cost ?? 0) + spent });
 
-const settleItem = async (item: Item, rewrite: Rewriter) => {
+const settleItem = async (item: Item, rewrite: Rewriter, via: Harness) => {
   const first = await attempt(item, rewrite);
   const outcome = worthRetrying(first) ? withCost(await attempt(item, rewrite), first.cost ?? 0) : first;
-  await logged(item, outcome);
+  await logged(item, outcome, via);
   return outcome;
 };
 
 export const runJob = (job: Job, rewrite: Rewriter) =>
-  Promise.all(job.items.map((item) => settleItem(item, rewrite)));
+  Promise.all(job.items.map((item) => settleItem(item, rewrite, job.harness ?? "claude")));

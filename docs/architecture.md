@@ -2,6 +2,30 @@
 
 Newest first. One finding each.
 
+## 2026-09-27 — Each harness rewrites with its own model
+
+The first Codex version sent Codex's documents to Claude's Haiku, which made
+Codex depend on Claude Code being installed and logged in. The worker now has
+two backends. `codex exec --ephemeral --ignore-user-config -s read-only` on
+`gpt-6-luna` at low effort takes the rewriter's instructions as
+`developer_instructions` and the brief on stdin, and writes the reply through
+`-o`. Ignoring the user config keeps enlint's own plugin, hooks and style card
+out of the child. An 800-word document takes about 23 seconds. The Stop hook
+picks the backend from `turn_id`, a field Codex adds to every hook payload and
+Claude never sends.
+
+Codex hooks copy Claude's format field for field, and Codex sets
+`CLAUDE_PLUGIN_ROOT` for plugin hooks, so one `hooks/hooks.json` serves both.
+Two things differ. Codex runs a plugin's hooks only after the user approves
+them once in `/hooks`. And on Windows Codex often writes files through
+PowerShell, which reaches hooks as a `Bash` call with no file path, so the Stop
+hook also scans the working folder for prose files created during the turn.
+
+On the same day `english-lint` became `enlint` and `nlp` became `artisan`, and
+the old folders moved to `archived/`. Artisan's repository does not commit
+`dist/` and has no `prepare` script, so a git dependency installs it unbuilt.
+This project links `../artisan` instead, which must be built first.
+
 ## 2026-09-27 — The style card lives in the system prompt
 
 The SessionStart hook put the card into the conversation as one early message,

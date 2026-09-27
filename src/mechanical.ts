@@ -1,5 +1,5 @@
-import { ErrorId } from "english-lint";
-import type { Config } from "english-lint/types";
+import { ErrorId } from "enlint";
+import type { Config } from "enlint/types";
 import { proseProblems } from "./lint.js";
 import type { Finding } from "./finding.js";
 

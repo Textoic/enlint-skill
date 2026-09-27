@@ -1,7 +1,7 @@
 {
   "name": "enlint",
-  "version": "0.5.0",
-  "description": "Writes English prose to a house style using the english-lint rule set. Puts the style card in the system prompt, lints every answer and every document Claude writes for free, and rewrites flagged documents in the background on a cheap model.",
+  "version": "0.6.1",
+  "description": "Writes English prose to a house style using the enlint rule set. Puts the style card in the system prompt, lints every answer and every document Claude writes for free, and rewrites flagged documents in the background on a cheap model.",
   "author": {
     "name": "neytopia"
   },
@@ -10,6 +10,6 @@
     "style",
     "linter",
     "prose",
-    "english-lint"
+    "enlint"
   ]
 }

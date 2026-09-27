@@ -69,7 +69,7 @@ test("sends a flagged document to the background and says nothing", async () => 
   });
 
   assert.equal(reply, null);
-  assert.deepEqual(launched, [{ items: [{ kind: "file", path: document, source: BAD }] }]);
+  assert.deepEqual(launched, [{ items: [{ kind: "file", path: document, source: BAD }], harness: "claude" }]);
   assert.equal(await atStop({ session_id: session }, limits, async () => assert.fail("nothing left to send")), null);
 });
 

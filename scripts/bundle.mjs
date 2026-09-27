@@ -5,7 +5,7 @@ import { build } from "esbuild";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "bundle");
-const nlpData = join(root, "node_modules", "nlp", "data");
+const nlpData = join(root, "node_modules", "artisan", "data");
 
 const STYLE_HEADER = `---
 name: house-style

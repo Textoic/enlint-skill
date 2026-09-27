@@ -3,11 +3,12 @@ import {
 } from "./chunk-JWUGAYSF.mjs";
 import {
   brief,
+  codexBinary,
   describeVerdict,
   historyPath,
   mechanically,
   verdictOf
-} from "./chunk-5IGITWPF.mjs";
+} from "./chunk-7VIIDS2B.mjs";
 import {
   allProblems,
   allRules,
@@ -18,7 +19,7 @@ import {
   listing,
   summary,
   wordsIn
-} from "./chunk-RU3IP2X6.mjs";
+} from "./chunk-K7HZUS6O.mjs";
 import "./chunk-7LWY23YD.mjs";
 
 // src/cli.ts
@@ -26,7 +27,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-var USAGE = `enlint - lint and rewrite English prose with english-lint
+var USAGE = `enlint - lint and rewrite English prose with the enlint rules
 
   enlint check <file|->            list the style problems in a file
   enlint check --transcript <p>    lint the last answer in a Claude Code transcript
@@ -236,7 +237,7 @@ var readHistory = async () => {
     return "";
   }
 };
-var historyLine = (entry) => `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, $${entry.cost.toFixed(4)}${entry.applied ? "" : `  (${entry.why})`}`;
+var historyLine = (entry) => `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, ${entry.via === "codex" ? "via Codex" : `$${entry.cost.toFixed(4)}`}${entry.applied ? "" : `  (${entry.why})`}`;
 var runLog = async (args) => {
   const count = Number(args.positional[0] ?? 20) || 20;
   const entries = (await readHistory()).split("\n").filter((line) => line.trim() !== "").slice(-count).map((line) => historyLine(JSON.parse(line)));
@@ -263,6 +264,7 @@ var main = async (argv) => {
   return run(args);
 };
 export {
+  codexBinary,
   density,
   main
 };

@@ -1,9 +1,9 @@
 # enlint
 
-Makes a coding agent write English like a person. It wraps
-[`english-lint`](../english-lint) — the rules — and [`nlp`](../nlp) — the parser
-— into something an agent applies to its own output, both before it writes and
-after.
+Makes a coding agent write English like a person, in Claude Code and in Codex.
+It wraps [`enlint`](../enlint), which holds the rules, and
+[`artisan`](../artisan), which parses the text, into something an agent applies
+to its own output, both before it writes and after.
 
 Three pieces do that. The style card sits in Claude's system prompt as an
 output style, so the agent knows the rules before it writes a word and keeps
@@ -29,7 +29,7 @@ words and expressions plus the explained antonyms ("not harmful" for
 em dash. The sentence rules are passives, noun stacks, nested clauses, negated
 contrasts ("not just X but Y"), absolute phrases and sentences packed too
 densely with nouns. The shape rule flags a bold phrase at the head of a
-paragraph. It does not exist in `english-lint` because it is a line-level
+paragraph. It does not exist in `enlint` because it is a line-level
 markdown judgement rather than a sentence-level one, and a bold lead-in on every
 paragraph is one of the fastest ways to recognise machine writing. Lists are
 fine, and nothing flags them.
@@ -43,8 +43,8 @@ Node 22 or newer. The two sibling repositories must sit next to this one and be
 built, because this package links them as `file:` dependencies and runs their
 compiled output.
 
-    cd ../nlp          && npm install && npm run build
-    cd ../english-lint && npm install && npm run build
+    cd ../artisan      && npm install && npm run build
+    cd ../enlint       && npm install && npm run build
     cd ../enlint-skill && npm install && npm run build
 
 `npm run build` compiles `src/` and then bundles it, with both sibling
@@ -97,24 +97,30 @@ developer message in every session:
     node scripts/install.mjs codex
 
 It writes the card between `# enlint:begin` and `# enlint:end` markers, so
-running it again replaces the block, and it saves the old file as
+running it again replaces the block, and on the first run it saves your file as
 `config.toml.enlint-backup`. It refuses to run when you already set
-`developer_instructions` yourself. Then install the plugin:
+`developer_instructions` yourself. Then it installs the plugin with the Codex
+CLI. You need no `codex` command on your PATH: the ChatGPT app ships the CLI at
+`%LOCALAPPDATA%\OpenAI\Codex\bin\<version>\codex.exe`, and the installer finds
+it there. Set `ENLINT_CODEX` to a path to override it.
 
-    codex plugin marketplace add C:/Users/neytopia/Documents/projects/enlint-skill
-    codex plugin add enlint@enlint-local
-
-Start Codex, run `/hooks`, and approve the three enlint hooks. Codex runs a
-plugin's hooks only after you review them once, and it says so in the hooks
-list until you do.
+Codex runs a plugin's hooks only after you approve them once. In the ChatGPT
+app, a **Review hooks** button appears in the Codex composer while any hook
+waits for approval; the plugin's page under Plugins and the Hooks section of
+Settings offer the same review. In the terminal CLI, run `/hooks`.
 
 Codex on Windows often writes files through PowerShell rather than its patch
 tool, and no hook sees what a shell command wrote. So the Stop hook also looks
 for prose files created during the turn, under the folder Codex runs in. It
 takes only files born during the turn, because for a file that already existed
-it cannot tell the agent's text from yours. The background rewrite still runs
-on Claude's Haiku through `claude -p`, so Claude Code must be installed and
-logged in on the same machine.
+it cannot tell the agent's text from yours.
+
+Each harness rewrites with its own cheap model and nothing else. A Codex turn
+hands its documents to `codex exec` on `gpt-6-luna` at low reasoning effort,
+run ephemeral, read-only and with `--ignore-user-config`, so the child loads no
+plugins, no hooks and no style card. A Claude turn hands them to `claude -p` on
+Haiku. The Stop hook tells the two apart by the `turn_id` field that only Codex
+sends.
 
 Codex installs a copy of the plugin, so after a rebuild bump `version` in
 `.codex-plugin/plugin.json` and run `codex plugin add enlint@enlint-local`
@@ -179,7 +185,9 @@ The hook says nothing below 60 words or 3 findings, so short factual replies
 never draw a note. `ENLINT_MODE=notify` shows you what was flagged and rewrites
 nothing. `ENLINT_DOCUMENTS=0` stops it recording the documents Claude writes,
 `ENLINT_FEEDBACK=0` drops the note about a flagged answer, and
-`ENLINT_REWRITE_MODEL` picks the background model, `haiku` by default. Both thresholds are environment variables, `ENLINT_MIN_WORDS`
+`ENLINT_CLAUDE_MODEL` and `ENLINT_CODEX_MODEL` pick the background model for
+each harness, `haiku` and `gpt-6-luna` by default. `ENLINT_REWRITER=claude` or
+`codex` forces one backend for both. Both thresholds are environment variables, `ENLINT_MIN_WORDS`
 and `ENLINT_MIN_ISSUES`; raise them if it still speaks up more than you want.
 The style card is a plugin output style that switches itself on, and it is
 built from `style/compact.md` by `npm run build`. Choosing another style in

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { access, readdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -23,7 +23,7 @@ const usage = `Usage:
   node scripts/install.mjs doctor          check that everything needed is in place
   node scripts/install.mjs claude          print the commands that install the plugin
   node scripts/install.mjs codex           put the style card in Codex's developer instructions
-                                          and print the commands that install the plugin`;
+                                          and install the plugin into Codex`;
 
 const installedCopy = async () => {
   try {
@@ -85,9 +85,9 @@ const doctor = async () => {
     ["bundle built", await exists(join(root, "bundle", "cli.mjs"))],
     ["bundle carries the dictionary", await exists(join(root, "bundle", "data", "dictionary.json"))],
     ["this checkout lints", lintsFrom(root)],
-    ["english-lint linked", await exists(join(root, "node_modules", "english-lint", "dist", "index.js"))],
-    ["nlp linked", await exists(join(root, "node_modules", "nlp", "dist", "index.js"))],
-    ["dictionary present", await exists(join(root, "node_modules", "nlp", "data", "dictionary.json"))],
+    ["enlint linked", await exists(join(root, "node_modules", "enlint", "dist", "index.js"))],
+    ["artisan installed", await exists(join(root, "node_modules", "artisan", "dist", "index.js"))],
+    ["dictionary present", await exists(join(root, "node_modules", "artisan", "data", "dictionary.json"))],
     ["style guides present", await exists(join(root, "style", "compact.md"))],
     await installedCheck(),
     ...(await codexChecks()),
@@ -100,7 +100,7 @@ const doctor = async () => {
   const failed = checks.filter(([, ok]) => !ok);
   if (failed.length > 0) {
     process.stdout.write(
-      "\nRun `npm install` then `npm run build` here, and `npm run build` in ../english-lint and ../nlp.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update enlint-local and /plugin update enlint@enlint-local in Claude Code.\n",
+      "\nRun `npm install` then `npm run build` here, and `npm run build` in ../enlint.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update enlint-local and /plugin update enlint@enlint-local in Claude Code.\n",
     );
     return 1;
   }
@@ -150,16 +150,45 @@ const withoutBlock = (text) => {
 
 const hasOtherInstructions = (text) => /^developer_instructions\s*=/mu.test(text);
 
-const codexSteps = (path) => `Wrote the style card into developer_instructions in ${path}
-(the previous file is saved beside it as config.toml.enlint-backup).
+const marketplaceRoot = () => root.split("\\").join("/");
 
-Now install the plugin that lints and rewrites:
+const codexCli = async () => {
+  try {
+    const { codexBinary } = await import(pathToFileURL(join(root, "bundle", "cli.mjs")).href);
+    return codexBinary();
+  } catch {
+    return "codex";
+  }
+};
+
+const runCodex = (binary, args) => {
+  const result = spawnSync(binary, args, { encoding: "utf8", windowsHide: true });
+  process.stdout.write(`${`${result.stdout ?? ""}${result.stderr ?? ""}`.trim()}\n`);
+  return result.status === 0;
+};
+
+const installPlugin = async () => {
+  const binary = await codexCli();
+  process.stdout.write(`\nInstalling the plugin with ${binary}\n`);
+  return (
+    runCodex(binary, ["plugin", "marketplace", "add", marketplaceRoot()]) &&
+    runCodex(binary, ["plugin", "add", "enlint@enlint-local"])
+  );
+};
+
+const HOOKS_STEP = `
+Last step: open Codex (the ChatGPT app's Codex tab, or the Codex CLI), run
+/hooks, and approve the three enlint hooks. Codex runs a plugin's hooks only
+after you review them once.
+`;
+
+const manualSteps = `
+Could not find the Codex CLI. It ships inside the ChatGPT app at
+%LOCALAPPDATA%\\OpenAI\\Codex\\bin\\<version>\\codex.exe; set ENLINT_CODEX to its path
+and run this again, or run these two commands with that path:
 
   codex plugin marketplace add ${root.split("\\").join("/")}
   codex plugin add enlint@enlint-local
-
-Then start Codex, run /hooks, and approve the three enlint hooks. Codex runs a
-plugin's hooks only after you review them once.
 `;
 
 const codex = async () => {
@@ -171,13 +200,15 @@ const codex = async () => {
     return 1;
   }
 
-  if (held !== "") {
+  if (held !== "" && !held.includes(BEGIN)) {
     await writeFile(`${path}.enlint-backup`, held, "utf8");
   }
 
   await writeFile(path, `${await blockFor()}\n${kept}`, "utf8");
-  process.stdout.write(codexSteps(path));
-  return 0;
+  process.stdout.write(`Wrote the style card into developer_instructions in ${path}\n(the previous file is saved beside it as config.toml.enlint-backup).\n`);
+  const installed = await installPlugin();
+  process.stdout.write(installed ? HOOKS_STEP : manualSteps);
+  return installed ? 0 : 1;
 };
 
 const COMMANDS = { doctor, claude, codex };

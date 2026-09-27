@@ -1,4 +1,4 @@
-import type { Config } from "english-lint/types";
+import type { Config } from "enlint/types";
 import { sentences } from "./document.js";
 import { allProblems } from "./lint.js";
 import type { Finding } from "./finding.js";

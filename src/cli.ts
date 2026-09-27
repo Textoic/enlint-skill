@@ -13,7 +13,7 @@ import { historyPath } from "./background.js";
 import { describeVerdict, verdictOf } from "./verify.js";
 import type { Finding } from "./finding.js";
 
-const USAGE = `enlint - lint and rewrite English prose with english-lint
+const USAGE = `enlint - lint and rewrite English prose with the enlint rules
 
   enlint check <file|->            list the style problems in a file
   enlint check --transcript <p>    lint the last answer in a Claude Code transcript
@@ -288,10 +288,10 @@ const readHistory = async () => {
   }
 };
 
-type Entry = { at: string; path: string; applied: boolean; why: string; cleared: number; survived: number; introduced: number; cost: number };
+type Entry = { at: string; path: string; applied: boolean; why: string; cleared: number; survived: number; introduced: number; cost: number; via?: string };
 
 const historyLine = (entry: Entry) =>
-  `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, $${entry.cost.toFixed(4)}${entry.applied ? "" : `  (${entry.why})`}`;
+  `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, ${entry.via === "codex" ? "via Codex" : `$${entry.cost.toFixed(4)}`}${entry.applied ? "" : `  (${entry.why})`}`;
 
 const runLog = async (args: Args) => {
   const count = Number(args.positional[0] ?? 20) || 20;
@@ -325,3 +325,5 @@ export const main = async (argv: string[]): Promise<number> => {
 };
 
 export { density };
+
+export { codexBinary } from "./rewriter.js";

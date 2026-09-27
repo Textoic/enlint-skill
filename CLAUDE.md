@@ -1,10 +1,10 @@
 # Working on enlint-skill
 
-This packages `english-lint` as something an agent uses on its own writing: a
+This packages `enlint` as something an agent uses on its own writing: a
 style card in the system prompt, a linter that reads the final answer of
 every turn for free, and a cheap background model that does the rewriting.
 
-`english-lint` holds the rules and `nlp` parses the text. Neither knows this
+`enlint` holds the rules and `artisan` parses the text. Neither knows this
 project exists, and neither should. What belongs here is everything about
 running them over an agent's own output: masking markdown, reading transcripts,
 scoring a rewrite, and keeping the token cost of all of it near zero.

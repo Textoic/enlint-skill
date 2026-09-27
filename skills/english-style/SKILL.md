@@ -1,6 +1,6 @@
 ---
 name: english-style
-description: Use when writing or revising prose a person will read - chat answers, summaries, reports, documentation, design notes, commit messages - or when asked to "check the style", "fix my writing", "make this sound human", "rewrite this properly", or "run enlint". Lints text against the english-lint rule set and hands the rewrite to a cheap subagent.
+description: Use when writing or revising prose a person will read - chat answers, summaries, reports, documentation, design notes, commit messages - or when asked to "check the style", "fix my writing", "make this sound human", "rewrite this properly", or "run enlint". Lints text against the enlint rule set and hands the rewrite to a cheap subagent.
 ---
 
 # Writing and fixing English prose

@@ -6,13 +6,13 @@ import nlp, {
   type FeatureWeights,
   type LexicalProps,
   type ParsedToken,
-} from "nlp";
+} from "artisan";
 
 const located = (name: string) => {
   const bundled = fileURLToPath(new URL(`./data/${name}`, import.meta.url));
   return existsSync(bundled)
     ? bundled
-    : fileURLToPath(import.meta.resolve(`nlp/${name}`));
+    : fileURLToPath(import.meta.resolve(`artisan/${name}`));
 };
 
 const load = async <T>(name: string): Promise<T> =>

@@ -8,6 +8,7 @@ import { leaveNote } from "./feedback.js";
 import { allProblems } from "./lint.js";
 import { takePending, workRoot, type Pending } from "./pending.js";
 import { summary } from "./report.js";
+import type { Harness } from "./rewriter.js";
 import { finalAnswerOf } from "./transcript.js";
 import { createdDuring, turnOf } from "./turns.js";
 
@@ -15,6 +16,7 @@ export type StopPayload = {
   session_id?: unknown;
   transcript_path?: unknown;
   last_assistant_message?: unknown;
+  turn_id?: unknown;
   stop_hook_active?: unknown;
 };
 
@@ -61,6 +63,13 @@ const flaggedAnswer = (answer: string, limits: Limits) => {
   return findings.length < limits.issues ? "" : summary(answer, findings);
 };
 
+const HARNESSES: Harness[] = ["claude", "codex"];
+
+export const harnessOf = (payload: StopPayload): Harness => {
+  const chosen = HARNESSES.find((harness) => harness === process.env.ENLINT_REWRITER);
+  return chosen ?? (typeof payload.turn_id === "string" ? "codex" : "claude");
+};
+
 const noteFor = (found: string) =>
   `enlint: your previous answer had ${found}. Write this answer in the house style; do not mention this note.`;
 
@@ -105,7 +114,7 @@ export const atStop = async (payload: StopPayload, limits: Limits, launch: Launc
   const items = await documentItems(session, limits);
   const found = flaggedAnswer(await answerOf(payload), limits);
   await Promise.all([
-    items.length === 0 || limits.notifyOnly ? null : launch({ items }),
+    items.length === 0 || limits.notifyOnly ? null : launch({ items, harness: harnessOf(payload) }),
     found === "" || limits.notifyOnly ? null : leaveNote(session, noteFor(found)),
   ]);
 
