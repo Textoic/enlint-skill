@@ -2,6 +2,108 @@
 
 Newest first. One finding each.
 
+## 2026-09-27 — The style card lives in the system prompt
+
+The SessionStart hook put the card into the conversation as one early message,
+which later turns bury and compaction can drop. A plugin can instead ship an
+output style in `output-styles/`, and the frontmatter key `force-for-plugin:
+true` switches it on whenever the plugin is enabled. With
+`keep-coding-instructions: true` Claude Code appends the style to its own
+system prompt rather than replacing it. That keeps the card in every request,
+where it is cached, and survives compaction. A headless Haiku session quoted
+the card back as part of its system prompt. `npm run build` writes the style
+from `style/compact.md`, so the card has one source, and the SessionStart hook
+is gone.
+
+The list rule is gone too, from the linter and from every guide. Lists are a
+legitimate shape for steps, options and reference material, and the rule
+pushed agents to fold them into paragraphs that read worse.
+
+## 2026-09-27 — Rewrites happen off the conversation, and answers are not rewritten
+
+Handing a flagged turn back to the model with `decision: "block"` worked, and
+it was the wrong design. For an answer, the model loaded the skill, spawned the
+rewriter, read the rewrite back and sent the whole answer a second time, so
+the user saw every answer twice and paid main-model tokens for all of it.
+Claude Code prints an answer before any hook can read it, so an answer cannot
+be corrected without being sent again. The Stop hook now never blocks and
+never prints. For a flagged answer it leaves a one-line note that the
+UserPromptSubmit hook adds to the next prompt, which costs about forty tokens
+and shapes the next answer.
+
+Documents are rewritten by a detached `node hooks/rewrite-worker.mjs`, which
+runs `claude -p` on Haiku with the rewriter's instructions as the system prompt
+and no tools, and takes the passage from stdout. `--setting-sources ""` drops
+user settings, which switches the plugin off for that child, and
+`ENLINT_DISABLE=1` covers the case where it does not. `--system-prompt`
+replaces Claude Code's own prompt, which leaves about 800 input tokens, and
+turning thinking off took an 800-word document from 71 seconds and six cents
+to 10 seconds and under two cents. `--bare` would have been simpler but
+refuses OAuth logins.
+
+A rewrite nobody reviews needs guards a reviewed one does not. The worker
+lints with the shape rules off and tells the model to keep headings, lists and
+tables, because the author chose that structure. It refuses a rewrite that
+changes a fence, inline code, a link target, a URL, a table row or quoted
+text, compared with whitespace collapsed because a quote can break across
+lines. In testing, Haiku twice turned the quoted word "delve" into "explore".
+The linter now masks short quoted spans, so a quoted word draws no finding in
+the first place. The worker writes only when the file still holds exactly what
+it read, and it wraps changed paragraphs to the file's own width while leaving
+untouched ones byte for byte, so the diff shows only what changed.
+
+## 2026-09-27 — The answer is the text after the last tool call
+
+`finalAnswerIn` used to join every assistant text block since the person's
+last message. In a turn with tool calls, that sweeps in the progress notes
+written between calls, so the rewriter was handed notes the reader had already
+scrolled past, and the rewrite came back with them stitched into the answer.
+The answer now starts after the last assistant entry that calls a tool, and an
+entry that carries both text and a tool call counts as a call.
+
+A subagent's `Write` fires the parent's PostToolUse hook with the parent's
+`session_id`, so its documents land in the same log and the parent's Stop hook
+lints them. The hook used to drop writes that carried an `agent_id`, only so
+the rewriter's output would not be linted, but that output already lives in
+enlint's temp folders, which the path filter skips.
+
+## 2026-09-27 — The cached copy of the plugin cannot load its libraries
+
+Claude Code copies a plugin from a directory marketplace into
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`. The copy keeps
+`node_modules`, but `english-lint` and `nlp` are `file:../` links, and the
+copier rewrote them to point at `cache/<marketplace>/<plugin>/english-lint`,
+which does not exist. Anything run from that copy throws
+`ERR_MODULE_NOT_FOUND`.
+
+It did not break the hooks here. On Claude Code 2.1.283 a directory marketplace
+sets `CLAUDE_PLUGIN_ROOT` to the source folder, which the Stop hook proved by
+naming `bin/enlint.mjs` in this checkout when it computed the path from its own
+location. It would break an install from git or any source that is copied, so
+the plugin now runs from `bundle/`. esbuild builds that with both libraries
+inlined and the two dictionary files beside it. `src/nlp.ts` looks for
+`./data/` beside itself first and falls back to the `nlp` package, which keeps
+`dist/` and the tests working. `install.mjs doctor` runs the installed copy
+too.
+
+## 2026-09-27 — A Stop hook's systemMessage never reaches the model
+
+The Stop hook reported findings in `systemMessage`, which Claude Code shows the
+user and never puts in the model's context. So the model had no way to know an
+answer was flagged, and no reason to call the skill; working as designed, the
+hook could only ever produce a note the user had to act on. To make the model
+act, a Stop hook returns `decision: "block"` with a `reason`, and the reason
+becomes the model's next input. Claude Code sets `stop_hook_active` on the turn
+that follows, and the hook returns early on it, which bounds the cost at one
+extra turn.
+
+Documents take a different path because a Stop hook sees only the transcript.
+A PostToolUse hook on `Write|Edit|MultiEdit` appends the path, or for an edit
+only the text added, to a per-session log in the temp folder. It loads nothing
+but that log module, so it costs about as much as starting node. The Stop hook
+reads the log, lints each document once with the dictionary already loaded,
+and records what it reported so the rewrite does not get flagged again.
+
 ## 2026-09-14 — Documentation about a linter trips the linter
 
 Linting this repository's own prose reports 31 problems in `README.md` and 16

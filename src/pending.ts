@@ -1,16 +1,14 @@
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export type Event =
   | { kind: "wrote"; path: string }
-  | { kind: "edited"; path: string; text: string }
-  | { kind: "reported"; path: string };
+  | { kind: "edited"; path: string; text: string };
 
 export type Pending = {
   wrote: string[];
   edited: Map<string, string[]>;
-  reported: Set<string>;
 };
 
 export const workRoot = () => join(tmpdir(), "enlint");
@@ -47,11 +45,9 @@ const withEdit = (edited: Map<string, string[]>, path: string, text: string) =>
   edited.set(path, [...(edited.get(path) ?? []), text]);
 
 const folded = (events: Event[]): Pending => {
-  const pending: Pending = { wrote: [], edited: new Map(), reported: new Set() };
+  const pending: Pending = { wrote: [], edited: new Map() };
   events.forEach((event) => {
-    if (event.kind === "reported") {
-      pending.reported.add(event.path);
-    } else if (event.kind === "wrote") {
+    if (event.kind === "wrote") {
       pending.wrote.push(event.path);
     } else {
       withEdit(pending.edited, event.path, event.text);
@@ -60,8 +56,11 @@ const folded = (events: Event[]): Pending => {
   return pending;
 };
 
-export const pendingFor = async (session: string): Promise<Pending> =>
-  folded(eventsIn(await readLog(session)));
+export const takePending = async (session: string): Promise<Pending> => {
+  const raw = await readLog(session);
+  await rm(logPath(session), { force: true });
+  return folded(eventsIn(raw));
+};
 
 const lines = (events: Event[]) =>
   events.map((event) => `${JSON.stringify(event)}\n`).join("");
@@ -73,13 +72,4 @@ export const record = async (session: string, events: Event[]) => {
 
   await mkdir(join(workRoot(), "sessions"), { recursive: true });
   await appendFile(logPath(session), lines(events), "utf8");
-};
-
-export const settle = async (session: string, reported: Set<string>) => {
-  await mkdir(join(workRoot(), "sessions"), { recursive: true });
-  await writeFile(
-    logPath(session),
-    lines([...reported].map((path) => ({ kind: "reported", path }))),
-    "utf8",
-  );
 };

@@ -1,9 +1,15 @@
 {
   "name": "enlint",
-  "version": "0.1.0",
-  "description": "Writes and rewrites English prose to a house style, using the english-lint rule set. Proactive guidance plus a zero-token linter that checks the final answer and hands the rewrite to a cheap subagent.",
+  "version": "0.5.0",
+  "description": "Writes English prose to a house style using the english-lint rule set. Puts the style card in the system prompt, lints every answer and every document Claude writes for free, and rewrites flagged documents in the background on a cheap model.",
   "author": {
     "name": "neytopia"
   },
-  "keywords": ["writing", "style", "linter", "prose", "english-lint"]
+  "keywords": [
+    "writing",
+    "style",
+    "linter",
+    "prose",
+    "english-lint"
+  ]
 }

@@ -5,9 +5,8 @@ commit messages, documentation, design notes. They do not apply to code,
 identifiers, file paths, or quoted material.
 
 Start with the shape, because it gives a machine away faster than any word
-does. No bulleted or numbered lists; fold what they say into running prose. No
-bold phrase at the head of a paragraph announcing its topic, so open with the
-point itself. Do not give every idea the same amount of room, because a big
+does. No bold phrase at the head of a paragraph announcing its topic, so open
+with the point itself. Do not give every idea the same amount of room, because a big
 idea earns three paragraphs and a small one earns a clause. Do not close by
 restating what you already said, and vary how paragraphs are built rather than
 repeating "state the point, elaborate, example, wrap up".

@@ -5,10 +5,12 @@ Makes a coding agent write English like a person. It wraps
 — into something an agent applies to its own output, both before it writes and
 after.
 
-Three pieces do that. A style card loads at session start, so the agent knows
-the rules before it writes a word. A hook reads the final answer of every turn
-and lints it, which costs no tokens at all because linting is a subprocess
-rather than a model call. When something needs rewriting, the work goes to a
+Three pieces do that. The style card sits in Claude's system prompt as an
+output style, so the agent knows the rules before it writes a word and keeps
+them for the whole session. A hook reads the final answer of every turn,
+and every prose document the agent wrote in it, and lints them, which costs no
+tokens at all because linting is a subprocess rather than a model call. When
+a document needs rewriting, a background process hands it to a
 subagent on a cheap model that carries the full style guide in its own
 instructions, so the passage, the guide and the findings never enter the
 context of the agent you are actually talking to.
@@ -21,17 +23,16 @@ detect-and-rewrite cycle.
 
 ## What it catches
 
-Fifteen rules across three scopes. The word rules are a list of 451 flagged
+Fourteen rules across three scopes. The word rules are a list of 451 flagged
 words and expressions plus the explained antonyms ("not harmful" for
 "harmless"), explained intensifiers ("very bad" for "awful"), similes, and the
 em dash. The sentence rules are passives, noun stacks, nested clauses, negated
 contrasts ("not just X but Y"), absolute phrases and sentences packed too
-densely with nouns. The shape rules are bulleted lists and bold phrases at the
-head of a paragraph, which do not exist in `english-lint` because they are
-line-level markdown judgements rather than sentence-level ones, and which
-matter more than any single word for this purpose: a bulleted answer with a
-bold lead-in on every paragraph is the fastest way to recognise machine writing,
-and it is the default shape of an agent's output.
+densely with nouns. The shape rule flags a bold phrase at the head of a
+paragraph. It does not exist in `english-lint` because it is a line-level
+markdown judgement rather than a sentence-level one, and a bold lead-in on every
+paragraph is one of the fastest ways to recognise machine writing. Lists are
+fine, and nothing flags them.
 
 Code is safe. Fenced blocks, inline code, URLs and link targets are masked
 before anything is parsed, so no rule can fire inside them.
@@ -46,12 +47,18 @@ compiled output.
     cd ../english-lint && npm install && npm run build
     cd ../enlint-skill && npm install && npm run build
 
+`npm run build` compiles `src/` and then bundles it, with both sibling
+libraries and the dictionary, into `bundle/`. The plugin runs from that bundle
+and nothing else, so a copy of this folder works on its own. Claude Code keeps
+such a copy in `~/.claude/plugins/cache`, and the `file:` links in
+`node_modules` point at folders that do not exist beside it.
+
 Then confirm the pieces are where they should be:
 
     node scripts/install.mjs doctor
 
-It prints a line per check and tells you what to rebuild if anything is
-missing.
+It prints a line per check, including whether the installed copy can lint
+anything, and tells you what to rebuild if a check fails.
 
 ## Installing into Claude Code
 
@@ -64,6 +71,11 @@ installs it in two commands:
 Restart Claude Code afterwards. Hooks are read once at session start and never
 reloaded, so a running session will not see them.
 
+Hooks run from this folder, so a rebuild reaches them at the next session
+start. To refresh the cached copy as well, bump `version` in
+`.claude-plugin/plugin.json` and run `/plugin marketplace update enlint-local`
+followed by `/plugin update enlint@enlint-local`.
+
 Running `node scripts/install.mjs claude` prints those same two commands with
 the path already filled in.
 
@@ -75,17 +87,38 @@ replacing `${CLAUDE_PLUGIN_ROOT}` with the absolute path to this checkout.
 
 ## Installing into Codex
 
-Codex gets the proactive half and the command-line half. Point the installer at
-whichever project you want it in and it writes the style card, with absolute
-paths already substituted, into that project's `AGENTS.md` between markers so
-re-running replaces the block rather than duplicating it:
+Codex gets everything Claude Code gets. Its hooks copy Claude's format field for
+field, so the same `hooks/hooks.json` serves both, and the repository is also a
+Codex plugin (`.codex-plugin/plugin.json`) and a Codex marketplace
+(`.agents/plugins/marketplace.json`). The style card goes into
+`developer_instructions` in `~/.codex/config.toml`, which Codex sends as a
+developer message in every session:
 
-    node scripts/install.mjs codex C:/path/to/your/project
+    node scripts/install.mjs codex
 
-The turn-end hook is Claude-only. Codex exposes a single `notify` program for
-turn-ended events and yours is already taken by computer-use, so there is no
-free slot to lint the finished answer from. In Codex you run `enlint check`
-yourself, which the block written into `AGENTS.md` tells the agent to do.
+It writes the card between `# enlint:begin` and `# enlint:end` markers, so
+running it again replaces the block, and it saves the old file as
+`config.toml.enlint-backup`. It refuses to run when you already set
+`developer_instructions` yourself. Then install the plugin:
+
+    codex plugin marketplace add C:/Users/neytopia/Documents/projects/enlint-skill
+    codex plugin add enlint@enlint-local
+
+Start Codex, run `/hooks`, and approve the three enlint hooks. Codex runs a
+plugin's hooks only after you review them once, and it says so in the hooks
+list until you do.
+
+Codex on Windows often writes files through PowerShell rather than its patch
+tool, and no hook sees what a shell command wrote. So the Stop hook also looks
+for prose files created during the turn, under the folder Codex runs in. It
+takes only files born during the turn, because for a file that already existed
+it cannot tell the agent's text from yours. The background rewrite still runs
+on Claude's Haiku through `claude -p`, so Claude Code must be installed and
+logged in on the same machine.
+
+Codex installs a copy of the plugin, so after a rebuild bump `version` in
+`.codex-plugin/plugin.json` and run `codex plugin add enlint@enlint-local`
+again.
 
 ## Testing it yourself
 
@@ -94,7 +127,7 @@ ships with the repository:
 
     node bin/enlint.mjs check test/fixtures/bad-prose.md
 
-You should see fifteen findings on 136 words, each with its line, column,
+You should see twelve findings on 136 words, each with its line, column,
 scope, rule and the flagged span, and a one-line summary underneath. It takes
 about a third of a second, most of which is loading an eleven-megabyte
 dictionary. Pipe your own writing through it with `node bin/enlint.mjs check -`.
@@ -125,44 +158,62 @@ by hand. Any transcript will do; this takes the newest one from this project:
 
     T=$(ls -t ~/.claude/projects/C--Users-neytopia-Documents-projects-enlint-skill/*.jsonl | head -1)
     W=$(echo "$T" | sed 's|^/c/|C:/|')
-    printf '{"transcript_path":"%s","stop_hook_active":false}' "$W" | ENLINT_DEBUG=1 node hooks/stop-lint.mjs
+    printf '{"session_id":"try","transcript_path":"%s","stop_hook_active":false}' "$W" | ENLINT_DEBUG=1 node hooks/stop-lint.mjs
 
 It prints the JSON it would hand Claude Code, or nothing when the answer was
 clean or too short. The path substitution matters on Windows: a Git Bash path
 like `/c/Users/...` resolves to `C:\c\Users\...` and produces a misleading
-file-not-found.
+file-not-found. To include documents, first send `hooks/record-write.mjs` one
+`{"session_id":"try","tool_name":"Write","tool_input":{"file_path":"..."}}`
+payload per file, with the same session id.
 
-Once the plugin is installed, the end-to-end test is to ask Claude for several
-paragraphs of prose on anything and watch for an `enlint:` note after it
-answers. Then ask it to fix that answer; it should run `enlint fix`, spawn
-`prose-rewriter`, and report a verdict line without ever showing you the brief.
+Once the plugin is installed, the end-to-end test is to ask Claude to write a
+markdown document of a few paragraphs in a corporate voice. Nothing appears in
+the conversation. About ten seconds after the turn ends the file changes on
+disk, and `node bin/enlint.mjs log` shows the rewrite, what it cleared and what
+it cost.
 
 ## Turning it down
 
 The hook says nothing below 60 words or 3 findings, so short factual replies
-never draw a note. Both thresholds are environment variables, `ENLINT_MIN_WORDS`
+never draw a note. `ENLINT_MODE=notify` shows you what was flagged and rewrites
+nothing. `ENLINT_DOCUMENTS=0` stops it recording the documents Claude writes,
+`ENLINT_FEEDBACK=0` drops the note about a flagged answer, and
+`ENLINT_REWRITE_MODEL` picks the background model, `haiku` by default. Both thresholds are environment variables, `ENLINT_MIN_WORDS`
 and `ENLINT_MIN_ISSUES`; raise them if it still speaks up more than you want.
-`ENLINT_PROACTIVE=0` drops the session-start style card and keeps the linting.
-`ENLINT_DISABLE=1` turns off both hooks and leaves the command line working.
+The style card is a plugin output style that switches itself on, and it is
+built from `style/compact.md` by `npm run build`. Choosing another style in
+`/config` replaces it, and disabling the plugin removes it.
+`ENLINT_DISABLE=1` turns off every hook and leaves the command line working.
 `ENLINT_DEBUG=1` makes the hook print what it swallowed, which is the only way
 to tell a broken hook from a clean answer, since it exits 0 on every path by
 design.
 
 Individual rules come off with `--off`, which takes a comma-separated list of
-rule ids; `node bin/enlint.mjs rules` names all fifteen. Switch one off for
+rule ids; `node bin/enlint.mjs rules` names all fourteen. Switch one off for
 prose where it genuinely does not apply, not for prose you could not fix.
 
 ## What it will not do
 
-The note arrives after the answer is already on your screen. That is the price
-of never blocking: the alternative is refusing to let a turn finish until its
-prose passes, which loops forever on a passage no rewrite will clear and costs
-you a turn every time a correct short answer trips one rule. The fix is one
-command away rather than automatic.
+A chat answer is never rewritten. Claude Code shows the answer before any hook
+can read it, so the only way to fix one is to send it twice, and that costs the
+tokens and the screen space this plugin exists to save. The hook leaves a
+one-line note that reaches Claude with your next message instead, so the next
+answer follows the style.
 
-Nothing lints prose inside source files. The hook reads the final answer of a
-turn and the command line reads files you name; an agent writing documentation
-into a `.md` file is not checked unless you check it.
+A background rewrite keeps headings, lists, tables, code, links and quoted text
+exactly as they were, and wraps changed paragraphs to the width the file
+already uses. It keeps the original when the rewrite changed any of those, when
+it cleared no more than it introduced, when it lost half the words, or when the
+file changed while it ran. Every attempt lands in `node bin/enlint.mjs log`.
+
+The hook lints the answer you read at the end of a turn, which is the text
+after Claude's last tool call, and skips the progress notes before it. It lints
+documents that subagents write as well as Claude's own. It never sees a file
+written through a shell command, such as a heredoc or a script, because only
+the `Write`, `Edit` and `MultiEdit` tools pass through it. It also skips prose
+inside source files, and documents under a `.claude` folder, which holds memory
+and settings rather than anything a person reads.
 
 The rules encode one person's house style, not a general theory of good
 English. `no-special-punctuation` objects to the em dash because it is eight
@@ -172,11 +223,13 @@ rather than writing around it.
 
 ## Layout
 
-`src/` holds the library and `bin/enlint.mjs` the command line. `skills/`,
-`agents/`, `commands/` and `hooks/` are the Claude Code plugin, discovered by
-convention. `style/` holds the four guides: the compact card that loads at
-session start, and the three full ones the rewriter carries. `codex/` holds the
-block the installer writes into a Codex project.
+`src/` holds the library, `bundle/` the self-contained build the plugin runs,
+and `bin/enlint.mjs` the command line. `skills/`,
+`agents/`, `commands/`, `hooks/` and `output-styles/` are the Claude Code
+plugin, discovered by convention. `style/` holds the four guides: the compact
+card that becomes the output style, and the three full ones the rewriter
+carries. `.codex-plugin/` and `.agents/plugins/` make the same folder a Codex
+plugin and marketplace.
 
 Six modules under `src/` were copied from `../enlint-lab` rather than imported,
 to keep this installable without dragging a research repository behind it.

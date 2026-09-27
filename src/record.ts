@@ -1,18 +1,19 @@
 import { tmpdir } from "node:os";
-import { extname, resolve, sep } from "node:path";
+import { extname, relative, resolve, sep } from "node:path";
+import { patchEvents } from "./patch.js";
 import { record, type Event } from "./pending.js";
 
 type Edit = { new_string?: unknown };
 
 export type ToolPayload = {
   session_id?: unknown;
-  agent_id?: unknown;
   tool_name?: unknown;
   cwd?: unknown;
   tool_input?: {
     file_path?: unknown;
     new_string?: unknown;
     edits?: unknown;
+    command?: unknown;
   };
 };
 
@@ -21,12 +22,15 @@ const PROSE_EXTENSIONS = new Set([".md", ".mdx", ".markdown", ".txt", ".rst", ".
 const isUnder = (path: string, folder: string) =>
   path.toLowerCase().startsWith(`${resolve(folder).toLowerCase()}${sep}`);
 
+const isEnlintWork = (path: string) =>
+  isUnder(path, tmpdir()) && relative(tmpdir(), path).toLowerCase().startsWith("enlint");
+
 const isAgentConfig = (path: string) =>
   path.split(/[\\/]/u).some((part) => part === ".claude" || part === ".codex");
 
 export const isDocument = (path: string) =>
   PROSE_EXTENSIONS.has(extname(path).toLowerCase()) &&
-  !isUnder(path, tmpdir()) &&
+  !isEnlintWork(path) &&
   !isAgentConfig(path);
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
@@ -50,11 +54,17 @@ const targetOf = (payload: ToolPayload) => {
   return given === "" ? "" : resolve(text(payload.cwd) || ".", given);
 };
 
+const patched = (payload: ToolPayload) =>
+  patchEvents(text(payload.tool_input?.command), text(payload.cwd) || ".").filter((event) => isDocument(event.path));
+
 export const eventsFor = (payload: ToolPayload): Event[] => {
+  if (payload.tool_name === "apply_patch") {
+    return patched(payload);
+  }
+
   const build = EVENTS_FOR[text(payload.tool_name)];
   const path = targetOf(payload);
-  const fromSubagent = text(payload.agent_id) !== "";
-  if (build == null || path === "" || fromSubagent || !isDocument(path)) {
+  if (build == null || path === "" || !isDocument(path)) {
     return [];
   }
 

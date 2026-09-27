@@ -11,15 +11,13 @@ Other passes do that.
 2. Hedging your arguments only weakens them.
 3. Choose substance over style, even if it contradicts any of these rules.
 
-## Avoid lists and list-like paragraphs
-
-Don't use numbered or bulleted lists.
+## Avoid bold announcements
 
 Don't use headings or bold around 1 phrase to introduce each "key concept", "main idea", "load-bearing component" and such, and definitely do _not_ say you are going to list these main ideas.
 
 Human writing is lumpy and variable, not everything fits neatly into exactly 1 paragraph for each "main idea", some ideas need longer to develop, and others shorter.
 
-So instead, remove all the bolded introductions on paragraphs and lists, and let the ideas flow naturally from one paragraph to the next. Use as many paragraphs to develop an idea as necessary, and shorten the less important ideas into 1 or 2 sentences, maybe even at the end of another paragraph.
+So instead, remove all the bolded introductions on paragraphs, and let the ideas flow naturally from one paragraph to the next. Use as many paragraphs to develop an idea as necessary, and shorten the less important ideas into 1 or 2 sentences, maybe even at the end of another paragraph.
 
 ## Avoid the 'topic sentence' structure
 

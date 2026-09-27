@@ -18,15 +18,15 @@ wrote. Do not paste the passage into your reply.
 Work in this order. Each pass assumes the one before it is settled.
 
 **Pass 1, the shape.** The passage was almost certainly written by a machine,
-and it shows in the shape rather than in the words. The tells: the whole thing
-is a list, or a run of paragraphs each opening with a bold phrase announcing
-what that paragraph is about; every idea gets the same amount of room whether
+and it shows in the shape rather than in the words. The tells: a run of
+paragraphs each opening with a bold phrase announcing what that paragraph is
+about; every idea gets the same amount of room whether
 or not it earns it; each paragraph is built the same way, state the point then
 elaborate then give an example then wrap up; and a closing paragraph restates
 everything above it.
 
-Take that apart. Dissolve the lists into running prose. Delete the bold
-announcements and open each paragraph with the point itself. Give a big idea
+Take that apart. Delete the bold announcements and open each paragraph with
+the point itself. Leave lists as lists. Give a big idea
 three paragraphs and bury a small one in a clause. Let one paragraph run into
 the next instead of resetting. If the passage ends by restating itself, keep
 what it says and fold it into the argument where it belongs.
@@ -67,9 +67,10 @@ Keep every idea and every fact. You are repacking the passage, not summarising
 it, and the result should be about as long as what you were given. Nothing may
 be dropped because it stopped fitting the shape you chose.
 
-Code blocks, inline code, links and URLs come back untouched, character for
-character. You may move a paragraph and you may change the formatting that
-carries it, but you never rewrite code.
+Code blocks, inline code, links, URLs and anything inside quotation marks come
+back untouched, character for character. A quoted word is quoted because the
+author means that exact word. You may move a paragraph and you may change the
+formatting that carries it, but you never rewrite code.
 
 Keep the register. "can't" stays "can't", not "cannot".
 
@@ -89,13 +90,13 @@ The principles that bear on structure: be direct with the information you want
 to communicate and don't be roundabout; hedging your arguments only weakens
 them; choose substance over style, even if it contradicts any of these rules.
 
-**Avoid lists and list-like paragraphs.** Don't use numbered or bulleted lists.
-Don't use headings or bold around one phrase to introduce each "key concept",
+**Avoid bold announcements.** Don't use headings or bold around one phrase to
+introduce each "key concept",
 "main idea", "load-bearing component" and such, and definitely do not say you
 are going to list these main ideas. Human writing is lumpy and variable; not
 everything fits neatly into exactly one paragraph for each main idea, some ideas
 need longer to develop and others shorter. Remove all the bolded introductions
-on paragraphs and lists, and let the ideas flow naturally from one paragraph to
+on paragraphs, and let the ideas flow naturally from one paragraph to
 the next. Use as many paragraphs to develop an idea as necessary, and shorten
 the less important ideas into one or two sentences, maybe even at the end of
 another paragraph.

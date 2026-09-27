@@ -53,15 +53,21 @@ const isAnswer = (entry: Entry) =>
   isMainline(entry) &&
   textOf(entry.message?.content) !== "";
 
-const lastPersonTurn = (entries: Entry[]) =>
-  entries.reduce(
-    (at, entry, index) => (isPersonTurn(entry) ? index : at),
-    -1,
-  );
+const callsTool = (entry: Entry) =>
+  entry.type === "assistant" &&
+  isMainline(entry) &&
+  Array.isArray(entry.message?.content) &&
+  (entry.message.content as Block[]).some((block) => block?.type === "tool_use");
+
+const lastIndexWhere = (entries: Entry[], matches: (entry: Entry) => boolean) =>
+  entries.reduce((at, entry, index) => (matches(entry) ? index : at), -1);
 
 export const finalAnswerIn = (raw: string): string => {
   const entries = entriesIn(raw);
-  const from = lastPersonTurn(entries);
+  const from = Math.max(
+    lastIndexWhere(entries, isPersonTurn),
+    lastIndexWhere(entries, callsTool),
+  );
   return entries
     .slice(from + 1)
     .filter(isAnswer)

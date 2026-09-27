@@ -4,7 +4,7 @@ import type { Scope } from "./finding.js";
 
 export const known: string[] = Object.values(ErrorId);
 
-export const SHAPE_RULES = ["no-lists", "no-bold-lead-ins"];
+export const SHAPE_RULES = ["no-bold-lead-ins"];
 
 export const everyRule: Config = {
   ...defaults,
@@ -27,7 +27,6 @@ const scopeOfRule: Record<string, Scope> = {
   [ErrorId.NO_PASSIVE_SENTENCES]: "sentences",
   [ErrorId.NO_SIMILES]: "words",
   [ErrorId.NO_SPECIAL_PUNCTUATION]: "words",
-  "no-lists": "shape",
   "no-bold-lead-ins": "shape",
 };
 

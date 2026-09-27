@@ -1,3 +1,10 @@
+---
+name: house-style
+description: The enlint house style for any prose a person will read.
+force-for-plugin: true
+keep-coding-instructions: true
+---
+
 # House style for prose
 
 These apply to prose you write for a person to read: chat answers, summaries,
@@ -5,9 +12,8 @@ commit messages, documentation, design notes. They do not apply to code,
 identifiers, file paths, or quoted material.
 
 Start with the shape, because it gives a machine away faster than any word
-does. No bulleted or numbered lists; fold what they say into running prose. No
-bold phrase at the head of a paragraph announcing its topic, so open with the
-point itself. Do not give every idea the same amount of room, because a big
+does. No bold phrase at the head of a paragraph announcing its topic, so open
+with the point itself. Do not give every idea the same amount of room, because a big
 idea earns three paragraphs and a small one earns a clause. Do not close by
 restating what you already said, and vary how paragraphs are built rather than
 repeating "state the point, elaborate, example, wrap up".
@@ -32,29 +38,3 @@ you meant.
 
 Substance beats every rule above. When following one would cost you accuracy or
 clarity, break it.
-
-## Checking your work
-
-A linter enforces all of the above. Checking costs nothing but a subprocess, so
-run it rather than judging prose by eye. Replace `ENLINT` below with the path to
-this checkout.
-
-    node ENLINT/bin/enlint.mjs check <file>
-    node ENLINT/bin/enlint.mjs check - --summary
-
-The second form reads stdin. Each line of output gives a line and column, the
-scope, the rule, the flagged span, and any replacement the rule computed. To
-rewrite what it flags, run
-
-    node ENLINT/bin/enlint.mjs fix <file>
-
-which applies the fixes needing no judgement and writes a brief naming every
-remaining problem. Add `--write` to save those free fixes back into the file.
-Follow the brief, write the result to the path it names, and score it with
-
-    node ENLINT/bin/enlint.mjs verify <original> <rewritten>
-
-Keep the rewrite when it clears problems without shrinking the passage by half.
-A large drop in word count means the passage was summarised rather than
-rewritten, and that result is worse than the text you started with even though
-it lints clean.

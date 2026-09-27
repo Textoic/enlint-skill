@@ -1,24 +1,26 @@
+import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Item, Job } from "./background.js";
 import { wordsIn } from "./document.js";
+import { leaveNote } from "./feedback.js";
 import { allProblems } from "./lint.js";
-import { pendingFor, settle, workRoot, type Pending } from "./pending.js";
+import { takePending, workRoot, type Pending } from "./pending.js";
 import { summary } from "./report.js";
 import { finalAnswerOf } from "./transcript.js";
-import type { Finding } from "./finding.js";
+import { createdDuring, turnOf } from "./turns.js";
 
 export type StopPayload = {
   session_id?: unknown;
   transcript_path?: unknown;
+  last_assistant_message?: unknown;
   stop_hook_active?: unknown;
-  cwd?: unknown;
 };
 
 export type Limits = { words: number; issues: number; notifyOnly: boolean };
 
-type Candidate = { label: string; source: string; file?: string; then: string; document?: string };
-
-type Flag = { label: string; file: string; summary: string; then: string; document?: string };
+export type Launch = (job: Job) => Promise<void>;
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -30,102 +32,83 @@ const readable = async (path: string) => {
   }
 };
 
-const shown = (path: string, cwd: string) => {
-  const near = relative(cwd, path);
-  return near.startsWith("..") || near === "" ? path : near;
+const answerOf = async (payload: StopPayload) => {
+  const given = text(payload.last_assistant_message);
+  const transcript = text(payload.transcript_path);
+  return given !== "" || transcript === "" ? given : finalAnswerOf(transcript);
 };
 
-const answerCandidate = async (transcript: string): Promise<Candidate[]> => {
-  if (transcript === "") {
+const writtenItems = (pending: Pending) =>
+  Promise.all(
+    [...new Set(pending.wrote)].map(async (path): Promise<Item> => ({ kind: "file", path, source: await readable(path) })),
+  );
+
+const editedItems = (pending: Pending): Item[] =>
+  [...pending.edited]
+    .filter(([path]) => !pending.wrote.includes(path))
+    .flatMap(([path, added]) => added.map((source): Item => ({ kind: "passage", path, source })));
+
+const worthRewriting = (limits: Limits) => (item: Item) =>
+  wordsIn(item.source) >= limits.words &&
+  allProblems(item.source, undefined, { shape: false }).length >= limits.issues;
+
+const flaggedAnswer = (answer: string, limits: Limits) => {
+  if (wordsIn(answer) < limits.words) {
+    return "";
+  }
+
+  const findings = allProblems(answer);
+  return findings.length < limits.issues ? "" : summary(answer, findings);
+};
+
+const noteFor = (found: string) =>
+  `enlint: your previous answer had ${found}. Write this answer in the house style; do not mention this note.`;
+
+const workerScript = () => fileURLToPath(new URL("../hooks/rewrite-worker.mjs", import.meta.url));
+
+export const launchWorker: Launch = async (job) => {
+  const folder = join(workRoot(), "jobs");
+  await mkdir(folder, { recursive: true });
+  const jobPath = join(folder, `${Date.now()}-${process.pid}.json`);
+  await writeFile(jobPath, JSON.stringify(job), "utf8");
+  spawn(process.execPath, [workerScript(), jobPath], { detached: true, stdio: "ignore", windowsHide: true }).unref();
+};
+
+const notice = (found: string, items: Item[]) =>
+  `enlint: ${[found === "" ? "" : `last answer: ${found}`, items.length === 0 ? "" : `${items.length} document passage(s) flagged`]
+    .filter((part) => part !== "")
+    .join("; ")}`;
+
+const createdItems = async (session: string, pending: Pending): Promise<Item[]> => {
+  const turn = await turnOf(session);
+  if (turn == null) {
     return [];
   }
 
-  const source = await finalAnswerOf(transcript);
-  return [{ label: "your last answer", source, then: "then reply with the rewritten answer as your whole message" }];
+  const known = new Set([...pending.wrote, ...pending.edited.keys()]);
+  const created = (await createdDuring(turn)).filter((path) => !known.has(path));
+  return Promise.all(created.map(async (path): Promise<Item> => ({ kind: "file", path, source: await readable(path) })));
 };
 
-const writtenCandidates = (pending: Pending, cwd: string) =>
-  Promise.all(
-    [...new Set(pending.wrote)]
-      .filter((path) => !pending.reported.has(path))
-      .map(async (path): Promise<Candidate> => ({
-        label: shown(path, cwd),
-        source: await readable(path),
-        file: path,
-        then: "then copy the rewrite over it",
-        document: path,
-      })),
-  );
-
-const editedCandidates = (pending: Pending, cwd: string): Candidate[] =>
-  [...pending.edited]
-    .filter(([path]) => !pending.reported.has(path) && !pending.wrote.includes(path))
-    .map(([path, added]) => ({
-      label: `your edits to ${shown(path, cwd)}`,
-      source: added.join("\n\n"),
-      then: `then put the rewrite back in place of the text you added to ${shown(path, cwd)}`,
-      document: path,
-    }));
-
-type Linted = Candidate & { findings: Finding[] };
-
-const linted = (limits: Limits) => (candidate: Candidate): Linted => ({
-  ...candidate,
-  findings: wordsIn(candidate.source) >= limits.words ? allProblems(candidate.source) : [],
-});
-
-const isFlagged = (limits: Limits) => (candidate: Linted) => candidate.findings.length >= limits.issues;
-
-const stemOf = (label: string) =>
-  label.replace(/[^A-Za-z0-9]+/gu, "-").replace(/^-|-$/gu, "").slice(0, 40) || "passage";
-
-const saved = async (session: string, candidate: Linted): Promise<Flag> => {
-  const file =
-    candidate.file ?? join(workRoot(), "passages", `${stemOf(session)}-${Date.now()}-${stemOf(candidate.label)}.md`);
-  if (candidate.file == null) {
-    await mkdir(join(workRoot(), "passages"), { recursive: true });
-    await writeFile(file, candidate.source, "utf8");
-  }
-
-  const { label, then, document, source, findings } = candidate;
-  return { label, then, document, file, summary: summary(source, findings) };
+const documentItems = async (session: string, limits: Limits) => {
+  const pending = await takePending(session);
+  const items = [...(await writtenItems(pending)), ...editedItems(pending), ...(await createdItems(session, pending))];
+  return items.filter(worthRewriting(limits));
 };
 
-const flagLine = (flag: Flag) => `- ${flag.label}: ${flag.summary}. Fix ${flag.file}, ${flag.then}.`;
-
-export const reasonFor = (flags: Flag[]) =>
-  `enlint flagged prose you wrote this turn. For each item below, invoke the enlint:enlint-fix skill on the path given and apply the rewrite it produces. Skip an item only when its text must stay a list or table for the reader.
-${flags.map(flagLine).join("\n")}`;
-
-const noticeFor = (flags: Flag[]) =>
-  `enlint: ${flags.map((flag) => `${flag.label}: ${flag.summary}`).join("; ")}. Run /enlint-fix to rewrite.`;
-
-const reply = (flags: Flag[], limits: Limits) =>
-  limits.notifyOnly
-    ? { continue: true, suppressOutput: true, systemMessage: noticeFor(flags) }
-    : { decision: "block", reason: reasonFor(flags), systemMessage: noticeFor(flags) };
-
-const candidatesFor = async (payload: StopPayload, pending: Pending) => {
-  const cwd = text(payload.cwd) || process.cwd();
-  return [
-    ...(await answerCandidate(text(payload.transcript_path))),
-    ...(await writtenCandidates(pending, cwd)),
-    ...editedCandidates(pending, cwd),
-  ];
-};
-
-const documentsIn = (flags: Flag[]) => flags.flatMap((flag) => (flag.document == null ? [] : [flag.document]));
-
-export const atStop = async (payload: StopPayload, limits: Limits) => {
+export const atStop = async (payload: StopPayload, limits: Limits, launch: Launch = launchWorker) => {
   if (payload.stop_hook_active === true) {
     return null;
   }
 
   const session = text(payload.session_id);
-  const pending = await pendingFor(session);
-  const candidates = (await candidatesFor(payload, pending)).map(linted(limits)).filter(isFlagged(limits));
-  const flags = await Promise.all(candidates.map((candidate) => saved(session, candidate)));
-  await settle(session, new Set([...pending.reported, ...documentsIn(flags)]));
+  const items = await documentItems(session, limits);
+  const found = flaggedAnswer(await answerOf(payload), limits);
+  await Promise.all([
+    items.length === 0 || limits.notifyOnly ? null : launch({ items }),
+    found === "" || limits.notifyOnly ? null : leaveNote(session, noteFor(found)),
+  ]);
 
-  return flags.length === 0 ? null : reply(flags, limits);
+  const quiet = limits.notifyOnly === false || (found === "" && items.length === 0);
+  return quiet ? null : { continue: true, suppressOutput: true, systemMessage: notice(found, items) };
 };

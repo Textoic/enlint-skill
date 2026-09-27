@@ -9,6 +9,7 @@ import { mechanically } from "./mechanical.js";
 import { brief } from "./brief.js";
 import { density, header, listing, summary } from "./report.js";
 import { finalAnswerOf } from "./transcript.js";
+import { historyPath } from "./background.js";
 import { describeVerdict, verdictOf } from "./verify.js";
 import type { Finding } from "./finding.js";
 
@@ -20,13 +21,14 @@ const USAGE = `enlint - lint and rewrite English prose with english-lint
   enlint verify <before> <after>   score a rewrite against the original
   enlint guide [name]              print a style guide (compact|words|sentences|document|all)
   enlint rules                     list every rule
+  enlint log [n]                   show the last n background rewrites (default 20)
 
 Options
   --json            machine-readable output
   --summary         one line only
   --strict          exit 1 when anything is flagged
   --off a,b         switch rules off
-  --no-shape        skip the list and bold-lead-in rules
+  --no-shape        skip the bold-lead-in rule
   --write           save the fixes needing no judgement back into the file (fix)
   --out <path>      where the rewriter should write (fix)
   --brief <path>    where to write the brief (fix)
@@ -278,7 +280,32 @@ const runRules = async () => {
   return 0;
 };
 
+const readHistory = async () => {
+  try {
+    return await readFile(historyPath(), "utf8");
+  } catch {
+    return "";
+  }
+};
+
+type Entry = { at: string; path: string; applied: boolean; why: string; cleared: number; survived: number; introduced: number; cost: number };
+
+const historyLine = (entry: Entry) =>
+  `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, $${entry.cost.toFixed(4)}${entry.applied ? "" : `  (${entry.why})`}`;
+
+const runLog = async (args: Args) => {
+  const count = Number(args.positional[0] ?? 20) || 20;
+  const entries = (await readHistory())
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .slice(-count)
+    .map((line) => historyLine(JSON.parse(line) as Entry));
+  process.stdout.write(entries.length === 0 ? "no background rewrites yet\n" : `${entries.join("\n")}\n`);
+  return 0;
+};
+
 const COMMANDS: Record<string, (args: Args) => Promise<number>> = {
+  log: runLog,
   check: runCheck,
   fix: runFix,
   verify: runVerify,

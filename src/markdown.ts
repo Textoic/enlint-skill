@@ -13,6 +13,8 @@ const MASKS: [RegExp, (match: string, ...groups: string[]) => string][] = [
   [/<!--[\s\S]*?-->/gu, blank],
   [/<\/?[a-zA-Z][^>\n]*>/gu, blank],
   [/`[^`\n]*`/gu, blank],
+  [/"[^"\n]{1,80}"/gu, blank],
+  [/“[^”\n]{1,80}”/gu, blank],
   [/^[ \t]*\[[^\]\n]+\]:[^\n]*$/gmu, blank],
   [/!?\[([^\]\n]*)\]\([^)\n]*\)/gu, label],
   [/!?\[([^\]\n]*)\]\[[^\]\n]*\]/gu, label],

@@ -20,6 +20,14 @@ test("masks fenced code so no rule fires inside it", () => {
   assert.equal(allProblems(source, editorial).length, 0);
 });
 
+test("masks quoted words, which the author means exactly", () => {
+  const source = "The rule treats \"delve\" and “leverage” as the whole story.";
+  assert.equal(
+    allProblems(source, editorial).filter(({ id }) => id === "no-bad-words").length,
+    0,
+  );
+});
+
 test("masks inline code and urls", () => {
   const source = "Read `delve into` and https://example.com/delve-into now.";
   assert.equal(
@@ -29,10 +37,8 @@ test("masks inline code and urls", () => {
   );
 });
 
-test("flags list items as shape problems", () => {
-  const found = structureProblems("- one thing\n- another thing\n");
-  assert.equal(found.length, 2);
-  assert.ok(found.every(({ id }) => id === "no-lists"));
+test("leaves lists alone, bold labels included", () => {
+  assert.deepEqual(structureProblems("- one thing\n- **Two:** another thing\n1. a third\n"), []);
 });
 
 test("flags a bold lead-in only when it opens a paragraph", () => {
@@ -44,8 +50,8 @@ test("flags a bold lead-in only when it opens a paragraph", () => {
   assert.equal(inline.length, 0);
 });
 
-test("ignores list-looking lines inside a fence", () => {
-  assert.equal(structureProblems("```\n- not a list\n```\n").length, 0);
+test("ignores bold lead-ins inside a fence", () => {
+  assert.equal(structureProblems("```\n**Overview:** not prose\n```\n").length, 0);
 });
 
 test("applies the em dash swap with no model", () => {
@@ -60,7 +66,7 @@ test("place reports one-based line and column", () => {
 });
 
 test("summary is one line and names each scope present", () => {
-  const source = "- The report was written by the team.\n";
+  const source = "**Report:** The report was written by the team.\n";
   const line = summary(source, allProblems(source, editorial));
   assert.equal(line.includes("\n"), false);
   assert.ok(line.includes("shape"));
@@ -103,16 +109,27 @@ test("reads the final answer out of a transcript", () => {
   assert.equal(finalAnswerIn(raw), "new answer");
 });
 
-test("joins the text blocks of a multi-part final answer", () => {
+test("reads only the text after the last tool call", () => {
   const raw = transcriptLines([
     { type: "user", message: { role: "user", content: "go" } },
     {
       type: "assistant",
-      message: { role: "assistant", content: [{ type: "text", text: "part one" }] },
+      message: { role: "assistant", content: [{ type: "text", text: "progress note" }] },
     },
     {
       type: "assistant",
-      message: { role: "assistant", content: [{ type: "tool_use", id: "t" }] },
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "another note" }, { type: "tool_use", id: "t" }],
+      },
+    },
+    {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", content: "x" }] },
+    },
+    {
+      type: "assistant",
+      message: { role: "assistant", content: [{ type: "text", text: "part one" }] },
     },
     {
       type: "assistant",

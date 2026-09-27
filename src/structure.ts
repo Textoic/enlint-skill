@@ -4,8 +4,6 @@ const FENCE = /^ {0,3}(?:`{3,}|~{3,})/u;
 
 const THEMATIC_BREAK = /^ {0,3}(?:(?:[-*_] *){3,})$/u;
 
-const LIST_ITEM = /^ {0,3}(?:[-*+]|\d{1,2}[.)])[ \t]+\S/u;
-
 const BOLD_LEAD = /^ {0,3}(\*\*\*[^\n]+?\*\*\*|\*\*[^\n]+?\*\*|__[^\n]+?__)/u;
 
 const HEADING = /^ {0,3}#{1,6}(?:[ \t]|$)/u;
@@ -46,14 +44,6 @@ const lines = (source: string): Line[] => {
   }));
 };
 
-const listFinding = ({ text, at }: Line): Finding => ({
-  id: "no-lists",
-  start: at + (text.length - text.trimStart().length),
-  end: at + text.trimEnd().length,
-  message:
-    "This is a bulleted or numbered list item. Dissolve the list: fold what it says into running prose, and let the ideas carry from one paragraph to the next instead of being enumerated.",
-});
-
 const leadFinding = ({ text, at }: Line, bold: string): Finding => ({
   id: "no-bold-lead-ins",
   start: at + text.indexOf(bold),
@@ -65,10 +55,6 @@ const leadFinding = ({ text, at }: Line, bold: string): Finding => ({
 const findingIn = (line: Line): Finding[] => {
   if (line.fenced || THEMATIC_BREAK.test(line.text)) {
     return [];
-  }
-
-  if (LIST_ITEM.test(line.text)) {
-    return [listFinding(line)];
   }
 
   const lead = line.opens ? BOLD_LEAD.exec(line.text) : null;

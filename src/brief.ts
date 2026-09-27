@@ -59,15 +59,29 @@ const rhythm = (source: string) => {
 export type BriefInput = {
   source: string;
   findings: Finding[];
-  outPath: string;
+  outPath?: string;
   label: string;
+  keepShape?: boolean;
 };
+
+const PASSES = "Work the three passes in order: shape first, then sentence construction, then word choice.";
+
+const KEEP_SHAPE =
+  "The author chose this document's structure. Keep every heading, list item and bold label where it is, skip the shape pass, and fix the sentences and words inside them. Table rows come back untouched.";
+
+const deliveryFor = (outPath: string | undefined) =>
+  outPath == null
+    ? "**Reply with the finished passage and nothing else.** Your reply replaces the passage exactly as you write it."
+    : `**Write the finished passage, and nothing else, to this file:**
+
+    ${outPath}`;
 
 export const brief = ({
   source,
   findings,
   outPath,
   label,
+  keepShape = false,
 }: BriefInput): string => {
   const by = grouped(findings);
   const sections = ORDER.filter(
@@ -79,16 +93,13 @@ export const brief = ({
 Source: ${label} — ${wordsIn(source)} words, ${findings.length} flagged.
 
 Rewrite the passage at the end of this file so it follows the style guide in
-your instructions and clears the findings below. Work the three passes in
-order: shape first, then sentence construction, then word choice.
+your instructions and clears the findings below. ${keepShape ? KEEP_SHAPE : PASSES}
 
-**Write the finished passage, and nothing else, to this file:**
-
-    ${outPath}
+${deliveryFor(outPath)}
 
 Keep every idea and every fact. You are repacking the passage, not summarising
 it: the result should be about as long as what you were given. Code blocks,
-inline code, links and URLs come back untouched, character for character.
+inline code, links, URLs and quoted text come back untouched, character for character.
 
 ${rhythm(source)}
 

@@ -1,188 +1,31 @@
 import {
-  ErrorId,
+  finalAnswerOf
+} from "./chunk-JWUGAYSF.mjs";
+import {
+  brief,
+  describeVerdict,
+  historyPath,
+  mechanically,
+  verdictOf
+} from "./chunk-5IGITWPF.mjs";
+import {
   allProblems,
   allRules,
   configure,
   density,
   editorial,
-  finalAnswerOf,
-  grouped,
   header,
   listing,
-  place,
-  proseProblems,
-  sentences,
-  spanOf,
   summary,
   wordsIn
-} from "./chunk-UUAUWUB3.mjs";
-import "./chunk-R7POPVJR.mjs";
+} from "./chunk-RU3IP2X6.mjs";
+import "./chunk-7LWY23YD.mjs";
 
 // src/cli.ts
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-// src/mechanical.ts
-var DETERMINISTIC = [ErrorId.NO_SPECIAL_PUNCTUATION];
-var swapFor = (error) => {
-  const [offered] = error.suggestions ?? [];
-  if (offered == null || offered.text === "") {
-    return null;
-  }
-  const [start, end] = offered.range;
-  return { start, end, replacement: offered.text, ruleId: error.id };
-};
-var overlaps = (one, other) => one.start < other.end && other.start < one.end;
-var settled = (swaps) => [...swaps].sort((one, other) => one.start - other.start || one.end - other.end).reduce(
-  (kept, swap) => kept.some((keeper) => overlaps(keeper, swap)) ? kept : [...kept, swap],
-  []
-);
-var applied = (source, swaps) => settled(swaps).slice().reverse().reduce(
-  (text, { start, end, replacement }) => text.slice(0, start) + replacement + text.slice(end),
-  source
-);
-var swapsFor = (source, config) => settled(
-  proseProblems(source, config).filter(({ id }) => DETERMINISTIC.includes(id)).flatMap((error) => {
-    const swap = swapFor(error);
-    return swap == null ? [] : [swap];
-  })
-);
-var mechanically = (source, config) => {
-  const swaps = swapsFor(source, config);
-  return { text: applied(source, swaps), swaps };
-};
-
-// src/verify.ts
-var countsOf = (errors) => errors.reduce(
-  (counts, { id }) => counts.set(id, (counts.get(id) ?? 0) + 1),
-  /* @__PURE__ */ new Map()
-);
-var ruleIdsIn = (before, after) => [
-  ...new Set([...before, ...after].map(({ id }) => id))
-];
-var talliesFor = (before, after) => {
-  const was = countsOf(before);
-  const now = countsOf(after);
-  return ruleIdsIn(before, after).map((ruleId) => ({
-    ruleId,
-    before: was.get(ruleId) ?? 0,
-    after: now.get(ruleId) ?? 0
-  })).sort(
-    (one, other) => other.before - one.before || (one.ruleId < other.ruleId ? -1 : 1)
-  );
-};
-var summed = (tallies, of) => tallies.reduce((total, tally) => total + of(tally), 0);
-var verdictOf = (before, after) => {
-  const byRule = talliesFor(before, after);
-  return {
-    asked: before.length,
-    cleared: summed(
-      byRule,
-      ({ before: was, after: now }) => Math.max(was - now, 0)
-    ),
-    survived: summed(
-      byRule,
-      ({ before: was, after: now }) => Math.min(was, now)
-    ),
-    introduced: summed(
-      byRule,
-      ({ before: was, after: now }) => Math.max(now - was, 0)
-    ),
-    byRule
-  };
-};
-var shortfall = ({ survived, introduced }) => [
-  survived > 0 ? `${survived} still flagged` : "",
-  introduced > 0 ? `${introduced} newly flagged` : ""
-].filter((part) => part !== "");
-var describeVerdict = (verdict) => {
-  const missed = shortfall(verdict);
-  return missed.length === 0 ? `cleared all ${verdict.asked}` : `cleared ${verdict.cleared} of ${verdict.asked}, ${missed.join(", ")}`;
-};
-var mean = (numbers) => numbers.length === 0 ? 0 : numbers.reduce((total, one) => total + one, 0) / numbers.length;
-var sentenceLengths = (text) => sentences(text).map((tokens) => tokens.filter(({ xpos }) => xpos !== "PUNCT").length).filter((length) => length > 0);
-var sentenceProfile = (text) => {
-  const lengths = sentenceLengths(text);
-  return {
-    count: lengths.length,
-    average: Math.round(mean(lengths)),
-    longest: Math.max(0, ...lengths)
-  };
-};
-
-// src/brief.ts
-var HEADINGS = {
-  shape: "Pass 1 - shape of the passage",
-  sentences: "Pass 2 - how sentences are built",
-  words: "Pass 3 - word choice"
-};
-var ORDER = ["shape", "sentences", "words"];
-var swapsOffered = (finding) => (finding.suggestions ?? []).filter(
-  ({ range: [from, to] }) => from === finding.start && to === finding.end
-).map(({ text }) => text).filter((text) => text !== "");
-var shapeLine = (source, finding) => {
-  const { line } = place(source, finding.start);
-  return `- line ${line}: ${finding.message}`;
-};
-var proseLine = (source, finding) => {
-  const { line } = place(source, finding.start);
-  const swaps = swapsOffered(finding);
-  const offered = swaps.length === 0 ? "" : `
-  Replacements the rule offers, any of which you may use: ${swaps.join(
-    ", "
-  )}`;
-  return `- line ${line}, "${spanOf(source, finding)}" \u2014 ${finding.message}${offered}`;
-};
-var section = (source, scope, found) => `### ${HEADINGS[scope]} (${found.length})
-
-${found.map(
-  (finding) => scope === "shape" ? shapeLine(source, finding) : proseLine(source, finding)
-).join("\n")}`;
-var rhythm = (source) => {
-  const { count, average, longest } = sentenceProfile(source);
-  return count < 2 ? "" : `The passage runs ${count} sentences, averaging ${average} words, longest ${longest}. Hand back one with the same shape: about ${count} sentences, not twice that, and the same spread between longest and shortest. A run of ${count * 2} short sentences all the same size is a failed edit however many flags it clears.`;
-};
-var brief = ({
-  source,
-  findings,
-  outPath,
-  label
-}) => {
-  const by = grouped(findings);
-  const sections = ORDER.filter(
-    (scope) => (by.get(scope) ?? []).length > 0
-  ).map((scope) => section(source, scope, by.get(scope)));
-  return `# Rewrite brief
-
-Source: ${label} \u2014 ${wordsIn(source)} words, ${findings.length} flagged.
-
-Rewrite the passage at the end of this file so it follows the style guide in
-your instructions and clears the findings below. Work the three passes in
-order: shape first, then sentence construction, then word choice.
-
-**Write the finished passage, and nothing else, to this file:**
-
-    ${outPath}
-
-Keep every idea and every fact. You are repacking the passage, not summarising
-it: the result should be about as long as what you were given. Code blocks,
-inline code, links and URLs come back untouched, character for character.
-
-${rhythm(source)}
-
-## What the linter found
-
-${sections.join("\n\n")}
-
-## The passage to rewrite
-
-${source}
-`;
-};
-
-// src/cli.ts
 var USAGE = `enlint - lint and rewrite English prose with english-lint
 
   enlint check <file|->            list the style problems in a file
@@ -191,13 +34,14 @@ var USAGE = `enlint - lint and rewrite English prose with english-lint
   enlint verify <before> <after>   score a rewrite against the original
   enlint guide [name]              print a style guide (compact|words|sentences|document|all)
   enlint rules                     list every rule
+  enlint log [n]                   show the last n background rewrites (default 20)
 
 Options
   --json            machine-readable output
   --summary         one line only
   --strict          exit 1 when anything is flagged
   --off a,b         switch rules off
-  --no-shape        skip the list and bold-lead-in rules
+  --no-shape        skip the bold-lead-in rule
   --write           save the fixes needing no judgement back into the file (fix)
   --out <path>      where the rewriter should write (fix)
   --brief <path>    where to write the brief (fix)
@@ -385,7 +229,23 @@ var runRules = async () => {
 `);
   return 0;
 };
+var readHistory = async () => {
+  try {
+    return await readFile(historyPath(), "utf8");
+  } catch {
+    return "";
+  }
+};
+var historyLine = (entry) => `${entry.at.slice(0, 19).replace("T", " ")}  ${entry.applied ? "applied" : "kept   "}  ${entry.path}  cleared ${entry.cleared}, survived ${entry.survived}, introduced ${entry.introduced}, $${entry.cost.toFixed(4)}${entry.applied ? "" : `  (${entry.why})`}`;
+var runLog = async (args) => {
+  const count = Number(args.positional[0] ?? 20) || 20;
+  const entries = (await readHistory()).split("\n").filter((line) => line.trim() !== "").slice(-count).map((line) => historyLine(JSON.parse(line)));
+  process.stdout.write(entries.length === 0 ? "no background rewrites yet\n" : `${entries.join("\n")}
+`);
+  return 0;
+};
 var COMMANDS = {
+  log: runLog,
   check: runCheck,
   fix: runFix,
   verify: runVerify,
