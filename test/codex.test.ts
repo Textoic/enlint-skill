@@ -74,3 +74,23 @@ test("rewrites a Codex turn with Codex and a Claude turn with Claude", async () 
   assert.equal(harnessOf({ turn_id: "t1" }), "codex");
   assert.equal(harnessOf({ session_id: "s" }), "claude");
 });
+
+test("offers the style card at session start in Codex only", async () => {
+  const { atSessionStart, isCodexSession } = await import("../src/session.js");
+  const codex = { transcript_path: join(tmpdir(), "sessions", "2026", "rollout-2026-09-27T10-00-00-abc.jsonl") };
+  const claude = { transcript_path: join(tmpdir(), "projects", "p", "0b3c5d9e-1111-2222-3333-444455556666.jsonl") };
+  assert.equal(isCodexSession(codex), true);
+  assert.equal(isCodexSession(claude), false);
+  assert.equal(await atSessionStart(claude), null);
+
+  const previous = process.env.CODEX_HOME;
+  process.env.CODEX_HOME = await mkdtemp(join(tmpdir(), "codex-home-"));
+  try {
+    const reply = await atSessionStart(codex);
+    assert.match(reply?.hookSpecificOutput.additionalContext ?? "", /^# House style for prose/u);
+    await writeFile(join(process.env.CODEX_HOME, "config.toml"), "# enlint:begin\n", "utf8");
+    assert.equal(await atSessionStart(codex), null);
+  } finally {
+    process.env.CODEX_HOME = previous;
+  }
+});

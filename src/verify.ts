@@ -1,4 +1,4 @@
-import type { Config } from "enlint/types";
+import type { Config } from "@textoic/enlint/types";
 import { sentences } from "./document.js";
 import { allProblems } from "./lint.js";
 import type { Finding } from "./finding.js";

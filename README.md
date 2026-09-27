@@ -1,8 +1,10 @@
 # enlint
 
 Makes a coding agent write English like a person, in Claude Code and in Codex.
-It wraps [`enlint`](../enlint), which holds the rules, and
-[`artisan`](../artisan), which parses the text, into something an agent applies
+It wraps [`@textoic/enlint`](https://www.npmjs.com/package/@textoic/enlint),
+which holds the rules, and
+[`@textoic/artisan`](https://www.npmjs.com/package/@textoic/artisan), which
+parses the text, into something an agent applies
 to its own output, both before it writes and after.
 
 Three pieces do that. The style card sits in Claude's system prompt as an
@@ -37,94 +39,111 @@ fine, and nothing flags them.
 Code is safe. Fenced blocks, inline code, URLs and link targets are masked
 before anything is parsed, so no rule can fire inside them.
 
-## Before you install
+## Installing
 
-Node 22 or newer. The two sibling repositories must sit next to this one and be
-built, because this package links them as `file:` dependencies and runs their
-compiled output.
+You need Node.js 20 or newer on your PATH, because every hook runs under
+`node`. Nothing else: the repository ships a self-contained build in `bundle/`
+with the rules, the parser and the dictionary inside it, so there is no
+`npm install` step.
 
-    cd ../artisan      && npm install && npm run build
-    cd ../enlint       && npm install && npm run build
-    cd ../enlint-skill && npm install && npm run build
+### Claude Code
 
-`npm run build` compiles `src/` and then bundles it, with both sibling
-libraries and the dictionary, into `bundle/`. The plugin runs from that bundle
-and nothing else, so a copy of this folder works on its own. Claude Code keeps
-such a copy in `~/.claude/plugins/cache`, and the `file:` links in
-`node_modules` point at folders that do not exist beside it.
+The repository is a Claude Code plugin and a one-plugin marketplace:
 
-Then confirm the pieces are where they should be:
+    /plugin marketplace add fpluis/enlint-skill
+    /plugin install enlint@enlint-skill
 
-    node scripts/install.mjs doctor
+Restart Claude Code afterwards, because hooks load at session start. The style
+card arrives as an output style, so it sits in the system prompt of every
+session. Flagged documents are rewritten in the background by `claude -p` on
+Haiku, which uses your existing Claude Code login.
 
-It prints a line per check, including whether the installed copy can lint
-anything, and tells you what to rebuild if a check fails.
+To update, run `/plugin marketplace update enlint-skill` and then
+`/plugin update enlint@enlint-skill`.
 
-## Installing into Claude Code
+### Codex
 
-The repository is both a plugin and a one-plugin marketplace, so Claude Code
-installs it in two commands:
+The same repository is a Codex plugin and marketplace. With the Codex CLI:
 
-    /plugin marketplace add C:/Users/neytopia/Documents/projects/enlint-skill
-    /plugin install enlint@enlint-local
+    codex plugin marketplace add fpluis/enlint-skill
+    codex plugin add enlint@enlint-skill
 
-Restart Claude Code afterwards. Hooks are read once at session start and never
-reloaded, so a running session will not see them.
-
-Hooks run from this folder, so a rebuild reaches them at the next session
-start. To refresh the cached copy as well, bump `version` in
-`.claude-plugin/plugin.json` and run `/plugin marketplace update enlint-local`
-followed by `/plugin update enlint@enlint-local`.
-
-Running `node scripts/install.mjs claude` prints those same two commands with
-the path already filled in.
-
-If you would rather not use the plugin system, wire the same three pieces by
-hand. Copy `skills/english-style` into `~/.claude/skills/`, copy
-`agents/prose-rewriter.md` into `~/.claude/agents/`, and merge the contents of
-`hooks/hooks.json` into the `hooks` object of `~/.claude/settings.json`,
-replacing `${CLAUDE_PLUGIN_ROOT}` with the absolute path to this checkout.
-
-## Installing into Codex
-
-Codex gets everything Claude Code gets. Its hooks copy Claude's format field for
-field, so the same `hooks/hooks.json` serves both, and the repository is also a
-Codex plugin (`.codex-plugin/plugin.json`) and a Codex marketplace
-(`.agents/plugins/marketplace.json`). The style card goes into
-`developer_instructions` in `~/.codex/config.toml`, which Codex sends as a
-developer message in every session:
-
-    node scripts/install.mjs codex
-
-It writes the card between `# enlint:begin` and `# enlint:end` markers, so
-running it again replaces the block, and on the first run it saves your file as
-`config.toml.enlint-backup`. It refuses to run when you already set
-`developer_instructions` yourself. Then it installs the plugin with the Codex
-CLI. You need no `codex` command on your PATH: the ChatGPT app ships the CLI at
-`%LOCALAPPDATA%\OpenAI\Codex\bin\<version>\codex.exe`, and the installer finds
-it there. Set `ENLINT_CODEX` to a path to override it.
+If you use Codex through the ChatGPT desktop app, you have the CLI already, but
+not on your PATH: it lives at
+`%LOCALAPPDATA%\OpenAI\Codex\bin\<version>\codex.exe` on Windows. Run the two
+commands with that path in place of `codex`.
 
 Codex runs a plugin's hooks only after you approve them once. In the ChatGPT
-app, a **Review hooks** button appears in the Codex composer while any hook
-waits for approval; the plugin's page under Plugins and the Hooks section of
-Settings offer the same review. In the terminal CLI, run `/hooks`.
+app, a **Review hooks** button appears in the Codex composer while a hook waits
+for approval, and the plugin's page under Plugins and the Hooks section of
+Settings offer the same review. In the terminal CLI, run `/hooks`. Until you
+approve them, the plugin does nothing.
+
+The style card reaches Codex through the session-start hook, which adds it as
+context at the start of every session. For a stronger hold, put it in
+`developer_instructions` in `~/.codex/config.toml`, which Codex sends as a
+developer message in every request. A clone does that for you:
+
+    git clone https://github.com/fpluis/enlint-skill
+    node enlint-skill/scripts/install.mjs codex
+
+That writes the card between `# enlint:begin` and `# enlint:end` markers, saves
+your old config as `config.toml.enlint-backup` on the first run, refuses to run
+if you already set `developer_instructions` yourself, and installs the plugin
+from the clone with whichever Codex CLI it finds. Once the card is in the
+config, the session-start hook stops adding its own copy.
+
+Flagged documents are rewritten in the background by `codex exec` on
+`gpt-6-luna` at low reasoning effort, run ephemeral and read-only with
+`--ignore-user-config`, so the rewrite loads no plugins, no hooks and no style
+card and saves no session. Set `ENLINT_CODEX` if the installer cannot find your
+Codex CLI.
+
+To update, run `codex plugin marketplace upgrade enlint-skill` and then
+`codex plugin add enlint@enlint-skill` again.
+
+### Checking the install
+
+From a clone, `node scripts/install.mjs doctor` checks the build and runs the
+copy each harness installed, so it tells you whether the plugin can actually
+lint rather than whether its files exist.
+
+## How the two harnesses differ
+
+Codex hooks copy Claude's format field for field, and Codex sets
+`CLAUDE_PLUGIN_ROOT` for plugin hooks, so one `hooks/hooks.json` serves both.
+The Stop hook tells the two apart by the `turn_id` field that only Codex sends,
+and sends each harness's documents to that harness's own model.
 
 Codex on Windows often writes files through PowerShell rather than its patch
 tool, and no hook sees what a shell command wrote. So the Stop hook also looks
-for prose files created during the turn, under the folder Codex runs in. It
+for prose files created during the turn, under the folder the agent runs in. It
 takes only files born during the turn, because for a file that already existed
-it cannot tell the agent's text from yours.
+it cannot tell the agent's text from yours. Claude gets the same check, which
+covers the files it writes through Bash.
 
-Each harness rewrites with its own cheap model and nothing else. A Codex turn
-hands its documents to `codex exec` on `gpt-6-luna` at low reasoning effort,
-run ephemeral, read-only and with `--ignore-user-config`, so the child loads no
-plugins, no hooks and no style card. A Claude turn hands them to `claude -p` on
-Haiku. The Stop hook tells the two apart by the `turn_id` field that only Codex
-sends.
+## Developing
 
-Codex installs a copy of the plugin, so after a rebuild bump `version` in
-`.codex-plugin/plugin.json` and run `codex plugin add enlint@enlint-local`
-again.
+Clone the repository and build it:
+
+    npm install
+    npm run build
+    npm test
+
+`npm run build` compiles `src/` into `dist/` and then bundles it, with
+`@textoic/enlint`, `@textoic/artisan` and the dictionary, into `bundle/`. It
+also writes `output-styles/house-style.md` from `style/compact.md`. Commit
+`bundle/` and `output-styles/`: both harnesses install a plugin by cloning it
+and never run a build, so those files are the plugin. `.gitattributes` marks
+them as generated, which keeps them out of diffs.
+
+To release, bump `version` in `package.json`, `.claude-plugin/plugin.json` and
+`.codex-plugin/plugin.json` together, rebuild, and push. Both harnesses compare
+the version to decide whether an update exists.
+
+To try a change without pushing, point either harness at the clone:
+`/plugin marketplace add ./enlint-skill` in Claude Code, or
+`codex plugin marketplace add ./enlint-skill` in Codex.
 
 ## Testing it yourself
 
@@ -160,9 +179,10 @@ that summarises instead of rewriting produces text that lints perfectly and is
 worse than what you gave it, so the word count is the check that matters most.
 
 To watch the turn-end hook work without waiting for a turn, feed it a payload
-by hand. Any transcript will do; this takes the newest one from this project:
+by hand. Any Claude Code transcript will do; this takes the newest one you
+have:
 
-    T=$(ls -t ~/.claude/projects/C--Users-neytopia-Documents-projects-enlint-skill/*.jsonl | head -1)
+    T=$(ls -t ~/.claude/projects/*/*.jsonl | head -1)
     W=$(echo "$T" | sed 's|^/c/|C:/|')
     printf '{"session_id":"try","transcript_path":"%s","stop_hook_active":false}' "$W" | ENLINT_DEBUG=1 node hooks/stop-lint.mjs
 
@@ -239,7 +259,7 @@ card that becomes the output style, and the three full ones the rewriter
 carries. `.codex-plugin/` and `.agents/plugins/` make the same folder a Codex
 plugin and marketplace.
 
-Six modules under `src/` were copied from `../enlint-lab` rather than imported,
-to keep this installable without dragging a research repository behind it.
+Six modules under `src/` were copied from a private research repository
+rather than imported, to keep this installable without dragging it behind.
 `docs/architecture.md` records that trade and the rest of the decisions, newest
 first, and `CLAUDE.md` is the working agreement for changing any of it.

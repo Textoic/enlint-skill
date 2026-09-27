@@ -1,19 +1,23 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "enlint-local",
-  "description": "Local marketplace holding the enlint prose-style plugin",
+  "name": "enlint-skill",
+  "description": "The enlint prose-style plugin for Claude Code",
   "owner": {
-    "name": "neytopia"
+    "name": "Luis Fominaya",
+    "url": "https://github.com/fpluis"
   },
   "plugins": [
     {
       "name": "enlint",
-      "description": "Writes English prose to a house style using the enlint rule set. Puts the style card in the system prompt, lints every answer and every document Claude writes for free, and rewrites flagged documents in the background on a cheap model.",
+      "description": "Writes English prose to a house style with the enlint rule set. Puts the style card in the agent's instructions, lints every answer and every document it writes for free, and rewrites flagged documents in the background on the harness's own cheap model.",
       "author": {
-        "name": "neytopia"
+        "name": "Luis Fominaya",
+        "url": "https://github.com/fpluis"
       },
       "category": "writing",
-      "source": "./"
+      "source": "./",
+      "homepage": "https://github.com/fpluis/enlint-skill",
+      "license": "MIT"
     }
   ]
 }

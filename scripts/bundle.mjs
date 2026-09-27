@@ -5,7 +5,7 @@ import { build } from "esbuild";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "bundle");
-const nlpData = join(root, "node_modules", "artisan", "data");
+const nlpData = join(root, "node_modules", "@textoic", "artisan", "data");
 
 const STYLE_HEADER = `---
 name: house-style
@@ -25,6 +25,7 @@ await build({
     record: join(root, "src", "record.ts"),
     worker: join(root, "src", "worker.ts"),
     feedback: join(root, "src", "feedback.ts"),
+    session: join(root, "src", "session.ts"),
   },
   outdir: out,
   bundle: true,

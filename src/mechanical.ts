@@ -1,5 +1,5 @@
-import { ErrorId } from "enlint";
-import type { Config } from "enlint/types";
+import { ErrorId } from "@textoic/enlint";
+import type { Config } from "@textoic/enlint/types";
 import { proseProblems } from "./lint.js";
 import type { Finding } from "./finding.js";
 

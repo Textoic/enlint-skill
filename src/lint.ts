@@ -1,5 +1,5 @@
-import lint from "enlint";
-import type { Config } from "enlint/types";
+import lint from "@textoic/enlint";
+import type { Config } from "@textoic/enlint/types";
 import { editorial } from "./config.js";
 import { sentences } from "./document.js";
 import { structureProblems } from "./structure.js";

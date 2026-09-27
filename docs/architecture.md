@@ -2,6 +2,22 @@
 
 Newest first. One finding each.
 
+## 2026-09-27 — The bundle is committed because nobody builds a plugin
+
+Claude Code and Codex install a plugin by cloning its repository, and neither
+runs `npm install` or a build script afterwards. So `bundle/`, with the two
+`@textoic` packages and the 11 MB dictionary inside it, and
+`output-styles/house-style.md` are committed, and a fresh clone runs with no
+`node_modules`. `.gitattributes` marks both as generated so their churn stays
+out of diffs. `dist/` stays ignored, because only the tests and the type check
+read it.
+
+Codex users who install from GitHub never run `install.mjs`, so the card
+cannot depend on it. A SessionStart hook adds the card as context when the
+transcript path names a Codex rollout file, and stays quiet when the Codex
+config already carries it in `developer_instructions`, or in Claude, where the
+output style already does the job.
+
 ## 2026-09-27 — Each harness rewrites with its own model
 
 The first Codex version sent Codex's documents to Claude's Haiku, which made

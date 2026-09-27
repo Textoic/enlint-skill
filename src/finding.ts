@@ -1,4 +1,4 @@
-import type { Suggestion } from "enlint/types";
+import type { Suggestion } from "@textoic/enlint/types";
 
 export type Finding = {
   id: string;

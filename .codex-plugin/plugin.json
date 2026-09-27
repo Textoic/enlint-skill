@@ -1,11 +1,12 @@
 {
   "name": "enlint",
-  "version": "0.6.1",
-  "description": "Writes English prose to a house style using the enlint rule set. Lints every answer and every document Codex writes for free, and rewrites flagged documents in the background on a cheap model.",
+  "version": "0.7.0",
+  "description": "Writes English prose to a house style with the enlint rule set. Puts the style card in the agent's instructions, lints every answer and every document it writes for free, and rewrites flagged documents in the background on the harness's own cheap model.",
   "author": {
-    "name": "neytopia"
+    "name": "Luis Fominaya",
+    "url": "https://github.com/fpluis"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "writing",
     "style",
@@ -17,10 +18,13 @@
     "displayName": "enlint",
     "shortDescription": "House style for the prose Codex writes",
     "longDescription": "Lints the final answer and every prose document of each turn against the enlint rule set. Flagged documents are rewritten in the background and replaced in place; a flagged answer leaves a one-line note that shapes the next one.",
-    "developerName": "neytopia",
+    "developerName": "Luis Fominaya",
     "category": "Productivity",
     "capabilities": [
       "Write"
-    ]
-  }
+    ],
+    "websiteURL": "https://github.com/fpluis/enlint-skill"
+  },
+  "homepage": "https://github.com/fpluis/enlint-skill",
+  "repository": "https://github.com/fpluis/enlint-skill"
 }

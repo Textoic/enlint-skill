@@ -1,5 +1,5 @@
-import { defaults, ErrorId } from "enlint";
-import type { Config } from "enlint/types";
+import { defaults, ErrorId } from "@textoic/enlint";
+import type { Config } from "@textoic/enlint/types";
 import type { Scope } from "./finding.js";
 
 export const known: string[] = Object.values(ErrorId);

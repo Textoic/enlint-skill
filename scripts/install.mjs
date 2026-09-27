@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
 import { access, readdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -54,14 +55,19 @@ const installedCheck = async () => {
 
 const codexHome = () => process.env.CODEX_HOME || join(homedir(), ".codex");
 
-const codexCopy = async () => {
-  const folder = join(codexHome(), "plugins", "cache", "enlint-local", "enlint");
+const foldersIn = async (folder) => {
   try {
-    const versions = (await readdir(folder)).sort();
-    return versions.length === 0 ? "" : join(folder, versions[versions.length - 1]);
+    return (await readdir(folder)).map((name) => join(folder, name));
   } catch {
-    return "";
+    return [];
   }
+};
+
+const codexCopy = async () => {
+  const marketplaces = await foldersIn(join(codexHome(), "plugins", "cache"));
+  const copies = (await Promise.all(marketplaces.map((market) => foldersIn(join(market, "enlint"))))).flat();
+  const runnable = copies.filter((copy) => existsSync(join(copy, "bin", "enlint.mjs")));
+  return runnable.sort((one, other) => statSync(other).mtimeMs - statSync(one).mtimeMs)[0] ?? "";
 };
 
 const codexChecks = async () => {
@@ -85,9 +91,9 @@ const doctor = async () => {
     ["bundle built", await exists(join(root, "bundle", "cli.mjs"))],
     ["bundle carries the dictionary", await exists(join(root, "bundle", "data", "dictionary.json"))],
     ["this checkout lints", lintsFrom(root)],
-    ["enlint linked", await exists(join(root, "node_modules", "enlint", "dist", "index.js"))],
-    ["artisan installed", await exists(join(root, "node_modules", "artisan", "dist", "index.js"))],
-    ["dictionary present", await exists(join(root, "node_modules", "artisan", "data", "dictionary.json"))],
+    ["@textoic/enlint installed", await exists(join(root, "node_modules", "@textoic", "enlint", "dist", "index.js"))],
+    ["@textoic/artisan installed", await exists(join(root, "node_modules", "@textoic", "artisan", "dist", "index.js"))],
+    ["dictionary present", await exists(join(root, "node_modules", "@textoic", "artisan", "data", "dictionary.json"))],
     ["style guides present", await exists(join(root, "style", "compact.md"))],
     await installedCheck(),
     ...(await codexChecks()),
@@ -100,7 +106,7 @@ const doctor = async () => {
   const failed = checks.filter(([, ok]) => !ok);
   if (failed.length > 0) {
     process.stdout.write(
-      "\nRun `npm install` then `npm run build` here, and `npm run build` in ../enlint.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update enlint-local and /plugin update enlint@enlint-local in Claude Code.\n",
+      "\nRun `npm install` then `npm run build` here.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update enlint-skill and /plugin update enlint@enlint-skill in Claude Code.\n",
     );
     return 1;
   }
@@ -114,14 +120,14 @@ const claude = async () => {
     `Run these two commands inside Claude Code:
 
   /plugin marketplace add ${root.split("\\").join("/")}
-  /plugin install enlint@enlint-local
+  /plugin install enlint@enlint-skill
 
 Then restart Claude Code. Hooks only load at session start.
 
 To pick up a rebuild later, bump the version in .claude-plugin/plugin.json and run:
 
-  /plugin marketplace update enlint-local
-  /plugin update enlint@enlint-local
+  /plugin marketplace update enlint-skill
+  /plugin update enlint@enlint-skill
 `,
   );
   return 0;
@@ -172,13 +178,13 @@ const installPlugin = async () => {
   process.stdout.write(`\nInstalling the plugin with ${binary}\n`);
   return (
     runCodex(binary, ["plugin", "marketplace", "add", marketplaceRoot()]) &&
-    runCodex(binary, ["plugin", "add", "enlint@enlint-local"])
+    runCodex(binary, ["plugin", "add", "enlint@enlint-skill"])
   );
 };
 
 const HOOKS_STEP = `
 Last step: open Codex (the ChatGPT app's Codex tab, or the Codex CLI), run
-/hooks, and approve the three enlint hooks. Codex runs a plugin's hooks only
+/hooks, and approve the four enlint hooks. Codex runs a plugin's hooks only
 after you review them once.
 `;
 
@@ -188,7 +194,7 @@ Could not find the Codex CLI. It ships inside the ChatGPT app at
 and run this again, or run these two commands with that path:
 
   codex plugin marketplace add ${root.split("\\").join("/")}
-  codex plugin add enlint@enlint-local
+  codex plugin add enlint@enlint-skill
 `;
 
 const codex = async () => {

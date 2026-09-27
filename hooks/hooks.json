@@ -1,6 +1,17 @@
 {
-  "description": "Records the prose documents Claude writes, and at the end of each turn lints the final answer and those documents. Flagged documents are rewritten in the background by a cheap model and replaced in place; a flagged answer leaves a one-line note for the next turn. Never blocks and never writes to the conversation. The style card itself reaches the system prompt through output-styles/house-style.md.",
+  "description": "Records the prose documents the agent writes, and at the end of each turn lints the final answer and those documents. Flagged documents are rewritten in the background by the harness's own cheap model and replaced in place; a flagged answer leaves a one-line note for the next turn. In Codex, the session-start hook adds the style card unless developer_instructions already carry it. Never blocks and never writes to the conversation.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-card.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|apply_patch",

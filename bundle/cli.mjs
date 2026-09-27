@@ -8,7 +8,7 @@ import {
   historyPath,
   mechanically,
   verdictOf
-} from "./chunk-7VIIDS2B.mjs";
+} from "./chunk-LI7ZDN6P.mjs";
 import {
   allProblems,
   allRules,
@@ -19,8 +19,9 @@ import {
   listing,
   summary,
   wordsIn
-} from "./chunk-K7HZUS6O.mjs";
-import "./chunk-7LWY23YD.mjs";
+} from "./chunk-BUDMO6NL.mjs";
+import "./chunk-MJOE2BNT.mjs";
+import "./chunk-R7POPVJR.mjs";
 
 // src/cli.ts
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";

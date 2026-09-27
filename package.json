@@ -1,9 +1,19 @@
 {
   "name": "enlint-skill",
-  "version": "0.6.1",
-  "license": "UNLICENSED",
+  "version": "0.7.0",
+  "description": "Writes English prose to a house style with the enlint rule set. Puts the style card in the agent's instructions, lints every answer and every document it writes for free, and rewrites flagged documents in the background on the harness's own cheap model.",
+  "license": "MIT",
+  "author": "Luis Fominaya (https://github.com/fpluis)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fpluis/enlint-skill.git"
+  },
+  "homepage": "https://github.com/fpluis/enlint-skill",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "enlint": "./bin/enlint.mjs"
   },
@@ -17,8 +27,8 @@
     "install-codex": "node ./scripts/install.mjs codex"
   },
   "dependencies": {
-    "enlint": "file:../enlint",
-    "artisan": "file:../artisan"
+    "@textoic/enlint": "0.1.0",
+    "@textoic/artisan": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "22.18.1",
