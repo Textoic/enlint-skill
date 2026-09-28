@@ -50,7 +50,7 @@ with the rules, the parser and the dictionary inside it, so there is no
 
 The repository is a Claude Code plugin and a one-plugin marketplace:
 
-    /plugin marketplace add fpluis/enlint-skill
+    /plugin marketplace add Textoic/enlint-skill
     /plugin install enlint@enlint-skill
 
 Restart Claude Code afterwards, because hooks load at session start. The style
@@ -65,7 +65,7 @@ To update, run `/plugin marketplace update enlint-skill` and then
 
 The same repository is a Codex plugin and marketplace. With the Codex CLI:
 
-    codex plugin marketplace add fpluis/enlint-skill
+    codex plugin marketplace add Textoic/enlint-skill
     codex plugin add enlint@enlint-skill
 
 If you use Codex through the ChatGPT desktop app, you have the CLI already, but
@@ -84,7 +84,7 @@ context at the start of every session. For a stronger hold, put it in
 `developer_instructions` in `~/.codex/config.toml`, which Codex sends as a
 developer message in every request. A clone does that for you:
 
-    git clone https://github.com/fpluis/enlint-skill
+    git clone https://github.com/Textoic/enlint-skill
     node enlint-skill/scripts/install.mjs codex
 
 That writes the card between `# enlint:begin` and `# enlint:end` markers, saves
@@ -220,6 +220,24 @@ design.
 Individual rules come off with `--off`, which takes a comma-separated list of
 rule ids; `node bin/enlint.mjs rules` names all fourteen. Switch one off for
 prose where it genuinely does not apply, not for prose you could not fix.
+
+The plugin also reads the `textoic.config.json` (or `.textoicrc.json`) nearest
+the working directory, the file the Textoic editors and
+[enlint-lsp](https://github.com/Textoic/enlint-lsp) use. A rule set to `"off"`
+there is off here too, and cases listed under `ignore` are not reported:
+
+```json
+{
+  "rules": {
+    "no-passive-sentences": "off",
+    "no-explained-intensifiers": ["warn", { "ignore": ["dirty"] }]
+  }
+}
+```
+
+Only those two settings carry over. The plugin keeps every other rule on,
+whatever the file's `extends` says, because the house style is stricter than
+an editor's defaults.
 
 ## What it will not do
 

@@ -2,6 +2,22 @@
 
 Newest first. One finding each.
 
+## 2026-09-27, the project's textoic.config.json can switch rules off and ignore cases
+
+The Textoic editors share an eslint-style config file, and enlint 0.2.0 can
+ignore single cases of its list-based rules. A user who ignores "very dirty" in
+VS Code expects the agent to stop flagging it too. `editorial` is now the house
+style (every rule on) with two things from the nearest `textoic.config.json`
+laid over it: rules set to `"off"` and each rule's `ignore` list. The file's
+`extends` and severities are skipped, so a project on the editors'
+`recommended` preset does not quietly weaken the agent's style. The file is
+read once, from the working directory the hook runs in; a file that is not
+JSON is skipped, because the Stop hook must never fail.
+
+The reader is written here rather than imported from `enlint-lsp`: the plugin
+needs two fields, and importing the server's config module would add its
+dependency tree to a bundle that ships to every install.
+
 ## 2026-09-27 — The bundle is committed because nobody builds a plugin
 
 Claude Code and Codex install a plugin by cloning its repository, and neither

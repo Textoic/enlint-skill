@@ -1,6 +1,7 @@
 import { defaults, ErrorId } from "@textoic/enlint";
 import type { Config } from "@textoic/enlint/types";
 import type { Scope } from "./finding.js";
+import { projectConfigFrom, withProjectConfig } from "./project-config.js";
 
 export const known: string[] = Object.values(ErrorId);
 
@@ -11,7 +12,10 @@ export const everyRule: Config = {
   ...(Object.fromEntries(known.map((id) => [id, true])) as Config),
 };
 
-export const editorial: Config = everyRule;
+export const editorial: Config = withProjectConfig(
+  everyRule,
+  projectConfigFrom(process.cwd()),
+);
 
 const scopeOfRule: Record<string, Scope> = {
   [ErrorId.NO_ABSOLUTE_PHRASES]: "sentences",
@@ -50,7 +54,7 @@ export const configure = (
 
   return {
     config: {
-      ...everyRule,
+      ...editorial,
       ...Object.fromEntries(off.map((id) => [id, false])),
     },
     unknown:
