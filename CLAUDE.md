@@ -1,4 +1,4 @@
-# Working on enlint-skill
+# Working on textoic-skill
 
 This packages `enlint` as something an agent uses on its own writing: a
 style card in the system prompt, a linter that reads the final answer of

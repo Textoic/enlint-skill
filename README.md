@@ -50,23 +50,23 @@ with the rules, the parser and the dictionary inside it, so there is no
 
 The repository is a Claude Code plugin and a one-plugin marketplace:
 
-    /plugin marketplace add Textoic/enlint-skill
-    /plugin install enlint@enlint-skill
+    /plugin marketplace add Textoic/textoic-skill
+    /plugin install enlint@textoic-skill
 
 Restart Claude Code afterwards, because hooks load at session start. The style
 card arrives as an output style, so it sits in the system prompt of every
 session. Flagged documents are rewritten in the background by `claude -p` on
 Haiku, which uses your existing Claude Code login.
 
-To update, run `/plugin marketplace update enlint-skill` and then
-`/plugin update enlint@enlint-skill`.
+To update, run `/plugin marketplace update textoic-skill` and then
+`/plugin update enlint@textoic-skill`.
 
 ### Codex
 
 The same repository is a Codex plugin and marketplace. With the Codex CLI:
 
-    codex plugin marketplace add Textoic/enlint-skill
-    codex plugin add enlint@enlint-skill
+    codex plugin marketplace add Textoic/textoic-skill
+    codex plugin add enlint@textoic-skill
 
 If you use Codex through the ChatGPT desktop app, you have the CLI already, but
 not on your PATH: it lives at
@@ -84,8 +84,8 @@ context at the start of every session. For a stronger hold, put it in
 `developer_instructions` in `~/.codex/config.toml`, which Codex sends as a
 developer message in every request. A clone does that for you:
 
-    git clone https://github.com/Textoic/enlint-skill
-    node enlint-skill/scripts/install.mjs codex
+    git clone https://github.com/Textoic/textoic-skill
+    node textoic-skill/scripts/install.mjs codex
 
 That writes the card between `# enlint:begin` and `# enlint:end` markers, saves
 your old config as `config.toml.enlint-backup` on the first run, refuses to run
@@ -99,8 +99,8 @@ Flagged documents are rewritten in the background by `codex exec` on
 card and saves no session. Set `ENLINT_CODEX` if the installer cannot find your
 Codex CLI.
 
-To update, run `codex plugin marketplace upgrade enlint-skill` and then
-`codex plugin add enlint@enlint-skill` again.
+To update, run `codex plugin marketplace upgrade textoic-skill` and then
+`codex plugin add enlint@textoic-skill` again.
 
 ### Checking the install
 
@@ -142,8 +142,8 @@ To release, bump `version` in `package.json`, `.claude-plugin/plugin.json` and
 the version to decide whether an update exists.
 
 To try a change without pushing, point either harness at the clone:
-`/plugin marketplace add ./enlint-skill` in Claude Code, or
-`codex plugin marketplace add ./enlint-skill` in Codex.
+`/plugin marketplace add ./textoic-skill` in Claude Code, or
+`codex plugin marketplace add ./textoic-skill` in Codex.
 
 ## Testing it yourself
 

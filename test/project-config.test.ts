@@ -36,7 +36,7 @@ test("no project config leaves the house style alone", () => {
 });
 
 test("the nearest textoic.config.json above the folder wins", async () => {
-  const root = await mkdtemp(join(tmpdir(), "enlint-skill-"));
+  const root = await mkdtemp(join(tmpdir(), "textoic-skill-"));
   const nested = join(root, "docs", "notes");
   await mkdir(nested, { recursive: true });
   await writeFile(
@@ -49,7 +49,7 @@ test("the nearest textoic.config.json above the folder wins", async () => {
 });
 
 test("a config that is not JSON is skipped", async () => {
-  const root = await mkdtemp(join(tmpdir(), "enlint-skill-"));
+  const root = await mkdtemp(join(tmpdir(), "textoic-skill-"));
   await writeFile(join(root, ".textoicrc.json"), "{ not json");
   assert.equal(projectConfigFrom(root), undefined);
 });

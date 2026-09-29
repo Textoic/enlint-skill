@@ -1,4 +1,4 @@
-# Working on enlint-skill
+# Working on textoic-skill
 
 The working agreement for this repository is in [CLAUDE.md](CLAUDE.md) and
 applies to every agent, not only Claude. Read it before you change anything.

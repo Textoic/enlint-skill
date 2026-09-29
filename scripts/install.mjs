@@ -106,7 +106,7 @@ const doctor = async () => {
   const failed = checks.filter(([, ok]) => !ok);
   if (failed.length > 0) {
     process.stdout.write(
-      "\nRun `npm install` then `npm run build` here.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update enlint-skill and /plugin update enlint@enlint-skill in Claude Code.\n",
+      "\nRun `npm install` then `npm run build` here.\nIf only the installed copy fails, bump the version in .claude-plugin/plugin.json, then run\n/plugin marketplace update textoic-skill and /plugin update enlint@textoic-skill in Claude Code.\n",
     );
     return 1;
   }
@@ -120,14 +120,14 @@ const claude = async () => {
     `Run these two commands inside Claude Code:
 
   /plugin marketplace add ${root.split("\\").join("/")}
-  /plugin install enlint@enlint-skill
+  /plugin install enlint@textoic-skill
 
 Then restart Claude Code. Hooks only load at session start.
 
 To pick up a rebuild later, bump the version in .claude-plugin/plugin.json and run:
 
-  /plugin marketplace update enlint-skill
-  /plugin update enlint@enlint-skill
+  /plugin marketplace update textoic-skill
+  /plugin update enlint@textoic-skill
 `,
   );
   return 0;
@@ -178,7 +178,7 @@ const installPlugin = async () => {
   process.stdout.write(`\nInstalling the plugin with ${binary}\n`);
   return (
     runCodex(binary, ["plugin", "marketplace", "add", marketplaceRoot()]) &&
-    runCodex(binary, ["plugin", "add", "enlint@enlint-skill"])
+    runCodex(binary, ["plugin", "add", "enlint@textoic-skill"])
   );
 };
 
@@ -194,7 +194,7 @@ Could not find the Codex CLI. It ships inside the ChatGPT app at
 and run this again, or run these two commands with that path:
 
   codex plugin marketplace add ${root.split("\\").join("/")}
-  codex plugin add enlint@enlint-skill
+  codex plugin add enlint@textoic-skill
 `;
 
 const codex = async () => {

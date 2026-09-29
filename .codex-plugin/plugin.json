@@ -23,8 +23,8 @@
     "capabilities": [
       "Write"
     ],
-    "websiteURL": "https://github.com/Textoic/enlint-skill"
+    "websiteURL": "https://github.com/Textoic/textoic-skill"
   },
-  "homepage": "https://github.com/Textoic/enlint-skill",
-  "repository": "https://github.com/Textoic/enlint-skill"
+  "homepage": "https://github.com/Textoic/textoic-skill",
+  "repository": "https://github.com/Textoic/textoic-skill"
 }

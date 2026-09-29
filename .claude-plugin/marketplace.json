@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "enlint-skill",
+  "name": "textoic-skill",
   "description": "The enlint prose-style plugin for Claude Code",
   "owner": {
     "name": "Luis Fominaya",
@@ -16,7 +16,7 @@
       },
       "category": "writing",
       "source": "./",
-      "homepage": "https://github.com/Textoic/enlint-skill",
+      "homepage": "https://github.com/Textoic/textoic-skill",
       "license": "MIT"
     }
   ]
